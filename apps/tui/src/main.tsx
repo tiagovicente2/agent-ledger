@@ -5,15 +5,32 @@ import { App } from './app.tsx'
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
+  useMouse: false,
+  enableMouseMovement: false,
+  useKittyKeyboard: null,
 })
 
 const root = createRoot(renderer)
+let hasQuit = false
+
+function quit() {
+  if (hasQuit) {
+    return
+  }
+
+  hasQuit = true
+
+  try {
+    root.unmount()
+  } finally {
+    renderer.destroy()
+  }
+}
 
 root.render(
   <App
     onQuit={() => {
-      root.unmount()
-      process.exit(0)
+      quit()
     }}
   />,
 )
