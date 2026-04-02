@@ -2,6 +2,9 @@
   "name": "@agent-ledger/service",
   "private": true,
   "type": "module",
+  "scripts": {
+    "snapshot": "bun run src/generate-snapshot.ts"
+  },
   "exports": {
     ".": "./src/index.ts"
   },

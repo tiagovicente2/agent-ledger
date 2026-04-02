@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "bun run --cwd apps/tui dev",
-    "dev:tui": "bun run --cwd apps/tui dev",
+    "snapshot": "bun run --cwd packages/service snapshot",
     "test": "bun test",
     "typecheck": "tsc -p packages/service/tsconfig.json --noEmit && tsc -p apps/tui/tsconfig.json --noEmit"
   }
