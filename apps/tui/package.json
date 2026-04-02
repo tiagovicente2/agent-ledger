@@ -1,0 +1,14 @@
+{
+  "name": "@agent-ledger/tui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/main.tsx"
+  },
+  "dependencies": {
+    "@agent-ledger/service": "workspace:*",
+    "@opentui/core": "^0.1.92",
+    "@opentui/react": "^0.1.92",
+    "react": "^19.0.0"
+  }
+}
