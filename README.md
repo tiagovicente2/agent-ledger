@@ -37,5 +37,5 @@ bun run dev
 
 ## Documentation
 
-- How it works: `docs/how-it-works.md`
-- Pricing: `docs/pricing.md`
+- [How it works](docs/how-it-works.md)
+- [Pricing](docs/pricing.md)
