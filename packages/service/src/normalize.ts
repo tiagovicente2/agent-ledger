@@ -5,22 +5,53 @@ function normalizeModel(model: string): string {
   return model.trim().toLowerCase()
 }
 
-function inferProvider(agent: AgentName, model: string): string | null {
+function stripRoutePrefix(model: string): string {
   const normalizedModel = normalizeModel(model)
 
-  if (agent === 'claude' || normalizedModel.startsWith('claude')) {
+  return normalizedModel.includes('/')
+    ? (normalizedModel.split('/').at(-1) ?? normalizedModel)
+    : normalizedModel
+}
+
+function stripVariantSuffix(model: string): string {
+  const normalizedModel = normalizeModel(model)
+  const suffixIndex = normalizedModel.indexOf(':')
+
+  return suffixIndex >= 0 ? normalizedModel.slice(0, suffixIndex) : normalizedModel
+}
+
+function inferProvider(agent: AgentName, model: string): string | null {
+  const normalizedModel = normalizeModel(model)
+  const routedModel = stripRoutePrefix(model)
+
+  if (
+    agent === 'claude' ||
+    normalizedModel.startsWith('anthropic/') ||
+    normalizedModel.startsWith('claude') ||
+    routedModel.startsWith('claude')
+  ) {
     return 'anthropic'
   }
 
-  if (agent === 'gemini' || normalizedModel.startsWith('gemini')) {
+  if (
+    agent === 'gemini' ||
+    normalizedModel.startsWith('google/') ||
+    normalizedModel.startsWith('gemini') ||
+    routedModel.startsWith('gemini')
+  ) {
     return 'google'
   }
 
   if (
+    normalizedModel.startsWith('openai/') ||
     normalizedModel.startsWith('gpt') ||
     normalizedModel.startsWith('o1') ||
     normalizedModel.startsWith('o3') ||
-    normalizedModel.startsWith('o4')
+    normalizedModel.startsWith('o4') ||
+    routedModel.startsWith('gpt') ||
+    routedModel.startsWith('o1') ||
+    routedModel.startsWith('o3') ||
+    routedModel.startsWith('o4')
   ) {
     return 'openai'
   }
@@ -31,12 +62,29 @@ function inferProvider(agent: AgentName, model: string): string | null {
 function getPricingCandidates(model: string): string[] {
   const normalizedModel = normalizeModel(model)
   const candidates = new Set<string>([normalizedModel])
+  const routedModel = stripRoutePrefix(normalizedModel)
+  const routeAndVariantStrippedModel = stripVariantSuffix(routedModel)
+
+  candidates.add(routedModel)
+  candidates.add(routeAndVariantStrippedModel)
+  candidates.add(normalizedModel.replaceAll('.', '-'))
+  candidates.add(routedModel.replaceAll('.', '-'))
+  candidates.add(routeAndVariantStrippedModel.replaceAll('.', '-'))
 
   if (normalizedModel.endsWith('-latest')) {
     candidates.add(normalizedModel.slice(0, -'-latest'.length))
   }
 
-  return [...candidates]
+  if (routedModel.endsWith('-latest')) {
+    candidates.add(routedModel.slice(0, -'-latest'.length))
+  }
+
+  if (routeAndVariantStrippedModel.includes('kimi-k2p5')) {
+    candidates.add('kimi-k2.5')
+    candidates.add('kimi-k2-5')
+  }
+
+  return [...candidates].filter(Boolean)
 }
 
 function findPricingEntry(
@@ -49,18 +97,24 @@ function findPricingEntry(
 
   const provider = inferProvider(message.agent, message.model)
 
-  if (!provider) {
-    return null
+  if (provider) {
+    const candidates = new Set(
+      getPricingCandidates(message.model).map((candidate) => `${provider}:${candidate}`),
+    )
+
+    for (const entry of catalog) {
+      const key = `${entry.provider.toLowerCase()}:${normalizeModel(entry.model)}`
+
+      if (candidates.has(key)) {
+        return entry
+      }
+    }
   }
 
-  const candidates = new Set(
-    getPricingCandidates(message.model).map((candidate) => `${provider}:${candidate}`),
-  )
+  const fallbackCandidates = new Set(getPricingCandidates(message.model))
 
   for (const entry of catalog) {
-    const key = `${entry.provider.toLowerCase()}:${normalizeModel(entry.model)}`
-
-    if (candidates.has(key)) {
+    if (getPricingCandidates(entry.model).some((candidate) => fallbackCandidates.has(candidate))) {
       return entry
     }
   }
