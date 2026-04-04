@@ -128,8 +128,11 @@ export function SessionListPane({
   const headerLine = compactMode
     ? `${' '.repeat(2)}${pad('Agent', agentWidth)} ${pad('Project', compactProjectWidth)} ${pad('Tokens', tokensWidth)} ${pad('Est Cost', costWidth)}`
     : `${' '.repeat(2)}${pad('Agent', agentWidth)} ${pad('Project', fullProjectWidth)} ${pad('Tokens', tokensWidth)} ${pad('Est Cost', costWidth)} ${pad('Msgs', messagesWidth)} ${pad('Started', startedWidth)}`
+  const headerDivider = compactMode
+    ? `${' '.repeat(2)}${'─'.repeat(agentWidth)} ${'─'.repeat(compactProjectWidth)} ${'─'.repeat(tokensWidth)} ${'─'.repeat(costWidth)}`
+    : `${' '.repeat(2)}${'─'.repeat(agentWidth)} ${'─'.repeat(fullProjectWidth)} ${'─'.repeat(tokensWidth)} ${'─'.repeat(costWidth)} ${'─'.repeat(messagesWidth)} ${'─'.repeat(startedWidth)}`
 
-  const staticRows = 2
+  const staticRows = 3
   const visibleSessionCount = Math.max(1, rowCapacity - staticRows)
   const startIndex = Math.min(
     Math.max(0, selectedSessionIndex - Math.floor(visibleSessionCount / 2)),
@@ -144,6 +147,7 @@ export function SessionListPane({
       contentWidth,
     ),
     fitLine(headerLine, contentWidth),
+    fitLine(headerDivider, contentWidth),
     ...(visibleSessions.length === 0
       ? [fitLine('No sessions found', contentWidth)]
       : visibleSessions.map((session, visibleIndex) => {

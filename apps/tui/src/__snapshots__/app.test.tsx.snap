@@ -1,30 +1,30 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`DashboardApp matches a wide-layout snapshot 1`] = `
-"                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
-                                                                                                    
+"┌────────────────────────────────────────── Agent Ledger ──────────────────────────────────────────┐
+│Status: ready                                                                                     │
+│Tabs: [1:all] 2:claude 3:gemini 4:opencode 5:codex                                                │
+│Window: 7d | Sort: Recent DESC | Warnings: 0                                                      │
+│Keys: 1-5 [ ] t s a j/k r q                                                                       │
+│Generated: not loaded yet                                                                         │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────── Token Trend ──────────────────┐┌────────────────── Top Models ──────────────────┐
+│No data for current filters                     ││No data                                         │
+│                                                ││                                                │
+│                                                │└────────────────────────────────────────────────┘
+│                                                │┌───────────────── Agent Tokens ─────────────────┐
+│                                                ││No data                                         │
+└────────────────────────────────────────────────┘└────────────────────────────────────────────────┘
+┌──────────── Sessions | Agent: all ─────────────┐┌─────────────── Session Summary ────────────────┐
+│Sort: Recent DESC | keys: s/a                   ││No session selected                             │
+│  Agent       Project      Tokens    Est Cost   ││                                                │
+│  ─────────── ──────────── ───────── ─────────  ││                                                │
+│No sessions found                               ││                                                │
+│                                                ││                                                │
+│                                                ││                                                │
+│                                                ││                                                │
+└────────────────────────────────────────────────┘└────────────────────────────────────────────────┘
 "
 `;
 
