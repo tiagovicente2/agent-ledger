@@ -83,13 +83,8 @@ export function SessionListPane({
   sortKey,
   width,
 }: SessionListPaneProps) {
-  const contentWidth = Math.max(20, width - 2)
-  const visibleSessionCount = Math.max(1, height - 5)
-  const startIndex = Math.min(
-    Math.max(0, selectedSessionIndex - Math.floor(visibleSessionCount / 2)),
-    Math.max(0, sessions.length - visibleSessionCount),
-  )
-  const visibleSessions = sessions.slice(startIndex, startIndex + visibleSessionCount)
+  const contentWidth = Math.max(8, width - 2)
+  const rowCapacity = Math.max(1, height - 2)
   const compactMode = contentWidth < 58
 
   const agentWidth = 11
@@ -112,52 +107,77 @@ export function SessionListPane({
     ? `${' '.repeat(2)}${pad('Agent', agentWidth)} ${pad('Project', compactProjectWidth)} ${pad('Tokens', tokensWidth)} ${pad('Est Cost', costWidth)}`
     : `${' '.repeat(2)}${pad('Agent', agentWidth)} ${pad('Project', fullProjectWidth)} ${pad('Tokens', tokensWidth)} ${pad('Est Cost', costWidth)} ${pad('Msgs', messagesWidth)} ${pad('Started', startedWidth)}`
 
+  const staticRows = 2
+  const visibleSessionCount = Math.max(1, rowCapacity - staticRows)
+  const startIndex = Math.min(
+    Math.max(0, selectedSessionIndex - Math.floor(visibleSessionCount / 2)),
+    Math.max(0, sessions.length - visibleSessionCount),
+  )
+  const visibleSessions = sessions.slice(startIndex, startIndex + visibleSessionCount)
+  const topBorderTitle = truncate(
+    `Sessions | Agent: ${activeFilter}`,
+    Math.max(1, contentWidth - 1),
+  )
+  const topBorder = `┌${topBorderTitle}${'─'.repeat(Math.max(0, contentWidth - topBorderTitle.length))}┐`
+  const bottomBorder = `└${'─'.repeat(contentWidth)}┘`
+  const rows = [
+    fitLine(
+      `Sort: ${formatSortKey(sortKey)} ${sortDirection.toUpperCase()} | keys: s/a`,
+      contentWidth,
+    ),
+    fitLine(headerLine, contentWidth),
+    ...(visibleSessions.length === 0
+      ? [fitLine('No sessions found', contentWidth)]
+      : visibleSessions.map((session, visibleIndex) => {
+          const isSelected = startIndex + visibleIndex === selectedSessionIndex
+
+          if (compactMode) {
+            const compactRow =
+              `${isSelected ? '>' : ' '} ` +
+              `${pad(formatAgent(session.agent), agentWidth)} ` +
+              `${pad(session.projectPath ?? 'unknown', compactProjectWidth)} ` +
+              `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
+              `${pad(formatUsd(session.estimatedCostUsd), costWidth)}`
+
+            return fitLine(compactRow, contentWidth)
+          }
+
+          const fullRow =
+            `${isSelected ? '>' : ' '} ` +
+            `${pad(formatAgent(session.agent), agentWidth)} ` +
+            `${pad(session.projectPath ?? 'unknown', fullProjectWidth)} ` +
+            `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
+            `${pad(formatUsd(session.estimatedCostUsd), costWidth)} ` +
+            `${pad(String(session.messageCount), messagesWidth)} ` +
+            `${pad(formatTimestamp(session.startedAt), startedWidth)}`
+
+          return fitLine(fullRow, contentWidth)
+        })),
+  ].slice(0, rowCapacity)
+  const framedRows = [
+    ...rows,
+    ...new Array<number>(Math.max(0, rowCapacity - rows.length)).fill(0).map(() => ''),
+  ]
+  const counts = new Map<string, number>()
+
   return (
     <box
       style={{
-        border: true,
         flexDirection: 'column',
         height,
         width,
         padding: 0,
       }}
     >
-      <text>{fitLine(`Sessions | Agent: ${activeFilter}`, contentWidth)}</text>
-      <text>
-        {fitLine(
-          `Sort: ${formatSortKey(sortKey)} ${sortDirection.toUpperCase()} | keys: s/a`,
-          contentWidth,
-        )}
-      </text>
-      <text>{fitLine(headerLine, contentWidth)}</text>
-      {visibleSessions.length === 0 ? (
-        <text>{fitLine('No sessions found', contentWidth)}</text>
-      ) : null}
-      {visibleSessions.map((session, visibleIndex) => {
-        const isSelected = startIndex + visibleIndex === selectedSessionIndex
-
-        if (compactMode) {
-          const compactRow =
-            `${isSelected ? '>' : ' '} ` +
-            `${pad(formatAgent(session.agent), agentWidth)} ` +
-            `${pad(session.projectPath ?? 'unknown', compactProjectWidth)} ` +
-            `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
-            `${pad(formatUsd(session.estimatedCostUsd), costWidth)}`
-
-          return <text key={session.id}>{fitLine(compactRow, contentWidth)}</text>
-        }
-
-        const fullRow =
-          `${isSelected ? '>' : ' '} ` +
-          `${pad(formatAgent(session.agent), agentWidth)} ` +
-          `${pad(session.projectPath ?? 'unknown', fullProjectWidth)} ` +
-          `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
-          `${pad(formatUsd(session.estimatedCostUsd), costWidth)} ` +
-          `${pad(String(session.messageCount), messagesWidth)} ` +
-          `${pad(formatTimestamp(session.startedAt), startedWidth)}`
-
-        return <text key={session.id}>{fitLine(fullRow, contentWidth)}</text>
+      <text>{topBorder}</text>
+      {framedRows.map((row) => {
+        const rowKey = row.length > 0 ? row : '__blank__'
+        const count = (counts.get(rowKey) ?? 0) + 1
+        counts.set(rowKey, count)
+        const content = row.padEnd(contentWidth, ' ')
+        return <text key={`${rowKey}-${count}`}>{`│${content}│`}</text>
       })}
+      <text>{bottomBorder}</text>
     </box>
   )
 }

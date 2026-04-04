@@ -61,8 +61,6 @@ export function App({ onQuit }: AppProps) {
   } = useDashboardState()
   const resolvedSnapshot = snapshot ?? createEmptySnapshot()
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0)
-  const [detailsExpanded, setDetailsExpanded] = useState(false)
-  const [warningsOpen, setWarningsOpen] = useState(false)
   const contentHeight = Math.max(height - 12, 10)
   const topPaneHeight = Math.max(8, Math.floor(contentHeight * 0.4))
   const bottomPaneHeight = Math.max(6, contentHeight - topPaneHeight - 1)
@@ -166,16 +164,6 @@ export function App({ onQuit }: AppProps) {
       return
     }
 
-    if (event.name === 'return') {
-      setDetailsExpanded((currentValue) => !currentValue)
-      return
-    }
-
-    if (event.name === 'w') {
-      setWarningsOpen((currentValue) => !currentValue)
-      return
-    }
-
     if (event.name === 'down' || event.name === 'j') {
       setSelectedSessionIndex((currentIndex) =>
         Math.min(currentIndex + 1, Math.max(filteredSessions.length - 1, 0)),
@@ -229,11 +217,8 @@ export function App({ onQuit }: AppProps) {
           width={bottomPaneWidth}
         />
         <SessionDetailsPane
-          detailsExpanded={detailsExpanded}
           height={bottomPaneHeight}
           session={selectedSession}
-          warningsOpen={warningsOpen}
-          warnings={resolvedSnapshot.warnings}
           width={bottomPaneWidth}
         />
       </box>

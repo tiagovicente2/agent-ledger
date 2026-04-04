@@ -34,7 +34,26 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function formatTokens(value: number) {
-  return `${Math.round(value).toLocaleString()} tok`
+  return Math.round(value).toLocaleString()
+}
+
+function formatCompactTokens(value: number) {
+  if (value >= 1_000_000_000) {
+    const amount = value / 1_000_000_000
+    return `${amount >= 10 ? Math.round(amount) : amount.toFixed(1).replace(/\.0$/, '')}B`
+  }
+
+  if (value >= 1_000_000) {
+    const amount = value / 1_000_000
+    return `${amount >= 10 ? Math.round(amount) : amount.toFixed(1).replace(/\.0$/, '')}M`
+  }
+
+  if (value >= 1_000) {
+    const amount = value / 1_000
+    return `${amount >= 10 ? Math.round(amount) : amount.toFixed(1).replace(/\.0$/, '')}K`
+  }
+
+  return String(Math.round(value))
 }
 
 function formatUsd(value: number) {
@@ -53,19 +72,51 @@ function buildBar(value: number, maxValue: number, maxWidth: number): string {
 function buildCardRows(
   rows: DriverRow[],
   formatValue: (value: number) => string,
-  options: { labelWidth: number; barWidth?: number; showBar: boolean },
+  options: {
+    rowWidth: number
+    showBar: boolean
+    maxLabelWidth: number
+    compactValue?: (value: number) => string
+  },
 ) {
+  if (rows.length === 0) {
+    return []
+  }
+
   const maxValue = Math.max(1, ...rows.map((row) => row.value), 1)
+  const minLabelWidth = 5
+  let valueRows = rows.map((row) => formatValue(row.value))
+  let valueWidth = Math.max(1, ...valueRows.map((value) => value.length))
+  let labelWidth = clamp(
+    Math.max(...rows.map((row) => row.label.length)),
+    minLabelWidth,
+    options.maxLabelWidth,
+  )
 
-  return rows.map((row) => {
-    const label = truncate(row.label, options.labelWidth).padEnd(options.labelWidth, ' ')
-    const value = formatValue(row.value)
+  if (options.showBar && options.compactValue) {
+    const minBarWidth = 4
+    const availableBarWidth = options.rowWidth - labelWidth - valueWidth - 2
 
-    if (!options.showBar || !options.barWidth) {
-      return `${label} ${value}`
+    if (availableBarWidth < minBarWidth) {
+      valueRows = rows.map((row) => options.compactValue?.(row.value) ?? formatValue(row.value))
+      valueWidth = Math.max(1, ...valueRows.map((value) => value.length))
+    }
+  }
+
+  const maxLabelForRow = Math.max(minLabelWidth, options.rowWidth - valueWidth - 3)
+  labelWidth = Math.min(labelWidth, maxLabelForRow)
+  const barWidth = options.showBar ? Math.max(2, options.rowWidth - labelWidth - valueWidth - 2) : 0
+
+  return rows.map((row, index) => {
+    const label = truncate(row.label, labelWidth).padEnd(labelWidth, ' ')
+    const value = valueRows[index].padStart(valueWidth, ' ')
+
+    if (!options.showBar) {
+      const spacerWidth = Math.max(1, options.rowWidth - labelWidth - valueWidth)
+      return `${label}${' '.repeat(spacerWidth)}${value}`
     }
 
-    const bar = buildBar(row.value, maxValue, options.barWidth).padEnd(options.barWidth, ' ')
+    const bar = buildBar(row.value, maxValue, barWidth).padEnd(barWidth, ' ')
     return `${label} ${bar} ${value}`
   })
 }
@@ -108,28 +159,39 @@ function renderCard(
   cardHeight: number,
 ) {
   const innerWidth = Math.max(8, cardWidth - 2)
-  const rowCapacity = Math.max(1, cardHeight - 3)
+  const rowCapacity = Math.max(1, cardHeight - 2)
   const visibleRows = (rows.length > 0 ? rows : ['No data']).slice(0, rowCapacity)
   const counts = new Map<string, number>()
+  const lineCounts = new Map<string, number>()
+  const titleText = truncate(title, Math.max(1, innerWidth - 1))
+  const topBorder = `┌${titleText}${'─'.repeat(Math.max(0, innerWidth - titleText.length))}┐`
+  const bottomBorder = `└${'─'.repeat(innerWidth)}┘`
+  const framedRows = [
+    ...visibleRows,
+    ...new Array<number>(Math.max(0, rowCapacity - visibleRows.length)).fill(0).map(() => ''),
+  ]
 
   return (
     <box
       key={key}
       style={{
-        border: true,
-        borderStyle: 'single',
         flexDirection: 'column',
         height: cardHeight,
         width: cardWidth,
         padding: 0,
       }}
     >
-      <text>{truncate(title, innerWidth)}</text>
-      {visibleRows.map((row) => {
+      <text>{topBorder}</text>
+      {framedRows.map((row) => {
         const count = (counts.get(row) ?? 0) + 1
         counts.set(row, count)
-        return <text key={`${key}-${row}-${count}`}>{truncate(row, innerWidth)}</text>
+        const lineKey = row.length > 0 ? row : '__blank__'
+        const lineCount = (lineCounts.get(lineKey) ?? 0) + 1
+        lineCounts.set(lineKey, lineCount)
+        const content = truncate(row, innerWidth).padEnd(innerWidth, ' ')
+        return <text key={`${key}-${lineKey}-${count}-${lineCount}`}>{`│${content}│`}</text>
       })}
+      <text>{bottomBorder}</text>
     </box>
   )
 }
@@ -160,6 +222,7 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
   const wideLayout = contentWidth >= 72 && contentHeight >= 7
 
   const modelTokenMap = new Map<string, number>()
+  const projectTokenMap = new Map<string, number>()
   const agentTokenMap = new Map<AgentName, number>()
   const agentCostMap = new Map<AgentName, number>()
 
@@ -179,6 +242,9 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     const models = session.modelsUsed.length > 0 ? session.modelsUsed : ['unknown']
     const perModelTokens = session.tokenTotals.total / models.length
 
+    const project = session.projectPath ?? 'unknown'
+    projectTokenMap.set(project, (projectTokenMap.get(project) ?? 0) + session.tokenTotals.total)
+
     for (const model of models) {
       modelTokenMap.set(model, (modelTokenMap.get(model) ?? 0) + perModelTokens)
     }
@@ -190,11 +256,11 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     : contentWidth
   const rightColumnWidth = wideLayout ? contentWidth - columnGap - leftColumnWidth : contentWidth
 
-  const minColumnWidth = Math.min(leftColumnWidth, rightColumnWidth)
-  const labelWidth = clamp(Math.floor(minColumnWidth * 0.38), 9, 16)
-  const barWidth = clamp(Math.floor(minColumnWidth * 0.26), 5, 14)
-
   const models = [...modelTokenMap.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((left, right) => right.value - left.value)
+
+  const projects = [...projectTokenMap.entries()]
     .map(([label, value]) => ({ label, value }))
     .sort((left, right) => right.value - left.value)
 
@@ -206,45 +272,44 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     .map(([agent, value]) => ({ label: formatAgent(agent), value }))
     .sort((left, right) => right.value - left.value)
 
-  const tokenBreakdown: DriverRow[] = [
-    { label: 'Input', value: totals.tokens.input },
-    { label: 'Output', value: totals.tokens.output },
-    { label: 'Reasoning', value: totals.tokens.reasoning },
-    { label: 'Cache', value: totals.tokens.cacheRead + totals.tokens.cacheWrite },
-  ].filter((row) => row.value > 0)
-
-  const topModelsRows = buildCardRows(models.slice(0, 12), formatTokens, {
-    labelWidth,
-    showBar: false,
-  })
-  const agentTokenRows = buildCardRows(agentTokens.slice(0, 10), formatTokens, {
-    labelWidth,
-    barWidth,
-    showBar: true,
-  })
-  const agentCostRows = buildCardRows(agentCosts.slice(0, 10), formatUsd, {
-    labelWidth,
-    barWidth,
-    showBar: true,
-  })
-  const tokenBreakdownRows = buildCardRows(tokenBreakdown, formatTokens, {
-    labelWidth,
-    barWidth,
-    showBar: true,
-  })
-
   const fallbackRows = [`Snapshot total: ${formatTokens(totals.tokens.total)}`]
 
   if (wideLayout) {
-    const rowGap = 1
+    const rowGap = 0
     const columnHeights = planCardHeights(contentHeight, 2, rowGap, 3)
+    const leftRowWidth = Math.max(8, leftColumnWidth - 2)
+    const rightRowWidth = Math.max(8, rightColumnWidth - 2)
+
+    const topModelsRows = buildCardRows(models.slice(0, 12), formatTokens, {
+      rowWidth: leftRowWidth,
+      showBar: false,
+      maxLabelWidth: clamp(Math.floor(leftRowWidth * 0.62), 12, 32),
+      compactValue: formatCompactTokens,
+    })
+    const topProjectRows = buildCardRows(projects.slice(0, 10), formatTokens, {
+      rowWidth: leftRowWidth,
+      showBar: false,
+      maxLabelWidth: clamp(Math.floor(leftRowWidth * 0.62), 12, 32),
+      compactValue: formatCompactTokens,
+    })
+    const agentTokenRows = buildCardRows(agentTokens.slice(0, 10), formatTokens, {
+      rowWidth: rightRowWidth,
+      showBar: true,
+      maxLabelWidth: clamp(Math.floor(rightRowWidth * 0.26), 7, 14),
+      compactValue: formatCompactTokens,
+    })
+    const agentCostRows = buildCardRows(agentCosts.slice(0, 10), formatUsd, {
+      rowWidth: rightRowWidth,
+      showBar: true,
+      maxLabelWidth: clamp(Math.floor(rightRowWidth * 0.26), 7, 14),
+    })
 
     const leftCards: CardDef[] = [
       { key: 'models', title: 'Top Models', rows: topModelsRows },
       {
-        key: 'breakdown',
-        title: 'Token Breakdown',
-        rows: tokenBreakdownRows.length > 0 ? tokenBreakdownRows : fallbackRows,
+        key: 'projects',
+        title: 'Top Projects',
+        rows: topProjectRows.length > 0 ? topProjectRows : fallbackRows,
       },
     ]
     const rightCards: CardDef[] = [
@@ -307,7 +372,26 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     )
   }
 
-  const stackGap = 1
+  const stackGap = 0
+  const stackRowWidth = Math.max(8, contentWidth - 2)
+  const topModelsRows = buildCardRows(models.slice(0, 12), formatTokens, {
+    rowWidth: stackRowWidth,
+    showBar: false,
+    maxLabelWidth: clamp(Math.floor(stackRowWidth * 0.62), 12, 32),
+    compactValue: formatCompactTokens,
+  })
+  const agentTokenRows = buildCardRows(agentTokens.slice(0, 10), formatTokens, {
+    rowWidth: stackRowWidth,
+    showBar: true,
+    maxLabelWidth: clamp(Math.floor(stackRowWidth * 0.26), 7, 14),
+    compactValue: formatCompactTokens,
+  })
+  const agentCostRows = buildCardRows(agentCosts.slice(0, 10), formatUsd, {
+    rowWidth: stackRowWidth,
+    showBar: true,
+    maxLabelWidth: clamp(Math.floor(stackRowWidth * 0.26), 7, 14),
+  })
+
   const cards: CardDef[] = [
     { key: 'models', title: 'Top Models', rows: topModelsRows },
     { key: 'tokens', title: 'Agent Tokens', rows: agentTokenRows },
