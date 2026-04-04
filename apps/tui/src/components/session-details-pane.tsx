@@ -414,7 +414,7 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
   }
 
   const stackGap = 0
-  const tokenColumns: 1 | 2 = contentWidth <= 44 ? 2 : 1
+  const tokenColumns: 1 | 2 = contentWidth >= 56 ? 2 : 1
   const tokenRows = buildTokenRows(session.tokenTotals, Math.max(8, contentWidth - 2), tokenColumns)
   const cards: CardDef[] = [
     { key: 'summary', title: 'Session Summary', rows: summaryRows },

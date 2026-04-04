@@ -1,5 +1,7 @@
 import type { SummarySnapshot } from '@agent-ledger/service'
 
+export const HEADER_HEIGHT = 8
+
 interface HeaderProps {
   activeTab: string
   error: string | null
@@ -152,7 +154,7 @@ export function Header({
   warningCount,
   width,
 }: HeaderProps) {
-  const headerHeight = 8
+  const headerHeight = HEADER_HEIGHT
   const contentWidth = Math.max(20, width - 2)
   const wideLayout = contentWidth >= 108
   const status = error ? `load failed (${error})` : isRefreshing ? 'refreshing' : 'ready'

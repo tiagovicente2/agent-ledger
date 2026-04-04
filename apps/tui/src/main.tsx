@@ -4,7 +4,7 @@ import { createRoot } from '@opentui/react'
 import { App } from './app.tsx'
 
 const renderer = await createCliRenderer({
-  exitOnCtrlC: true,
+  exitOnCtrlC: false,
   useMouse: false,
   enableMouseMovement: false,
   useKittyKeyboard: null,

@@ -1,8 +1,8 @@
 import type { SummarySnapshot } from '@agent-ledger/service'
 import { useKeyboard, useTerminalDimensions } from '@opentui/react'
-import { useEffect, useState } from 'react'
+import { Fragment, type ReactNode, useEffect, useState } from 'react'
 
-import { Header } from './components/header.tsx'
+import { HEADER_HEIGHT, Header } from './components/header.tsx'
 import { OverviewDriversPane } from './components/overview-drivers-pane.tsx'
 import { OverviewTrendPane } from './components/overview-trend-pane.tsx'
 import { SessionDetailsPane } from './components/session-details-pane.tsx'
@@ -10,6 +10,7 @@ import { SessionListPane } from './components/session-list-pane.tsx'
 import {
   type ActiveAgent,
   AGENT_TABS,
+  type DashboardState,
   SORT_DIRECTION_OPTIONS,
   SORT_KEY_OPTIONS,
   TIME_WINDOW_OPTIONS,
@@ -18,6 +19,46 @@ import {
 
 interface AppProps {
   onQuit: () => void
+}
+
+interface DashboardAppProps extends AppProps {
+  dashboardState: DashboardState
+  terminalHeight: number
+  terminalWidth: number
+}
+
+interface PaneDef {
+  key: string
+  render: (height: number) => ReactNode
+}
+
+const MIN_GRID_WIDTH = 80
+const MIN_GRID_BODY_HEIGHT = 12
+const MIN_STACK_PANE_HEIGHT = 3
+
+function planPaneHeights(totalHeight: number, desiredCount: number, minHeight: number) {
+  if (totalHeight <= 0) {
+    return []
+  }
+
+  let count = Math.max(1, desiredCount)
+  const clampedMin = Math.max(1, Math.min(minHeight, totalHeight))
+
+  while (count > 1 && count * clampedMin > totalHeight) {
+    count -= 1
+  }
+
+  const heights = new Array<number>(count).fill(clampedMin)
+  let remaining = totalHeight - count * clampedMin
+  let index = 0
+
+  while (remaining > 0 && count > 0) {
+    heights[index % count] += 1
+    remaining -= 1
+    index += 1
+  }
+
+  return heights
 }
 
 function createEmptySnapshot(): SummarySnapshot {
@@ -43,6 +84,24 @@ function createEmptySnapshot(): SummarySnapshot {
 
 export function App({ onQuit }: AppProps) {
   const { width, height } = useTerminalDimensions()
+  const dashboardState = useDashboardState()
+
+  return (
+    <DashboardApp
+      dashboardState={dashboardState}
+      onQuit={onQuit}
+      terminalHeight={height}
+      terminalWidth={width}
+    />
+  )
+}
+
+export function DashboardApp({
+  dashboardState,
+  onQuit,
+  terminalHeight,
+  terminalWidth,
+}: DashboardAppProps) {
   const {
     activeAgent,
     error,
@@ -58,17 +117,14 @@ export function App({ onQuit }: AppProps) {
     sortKey,
     timeWindow,
     trend,
-  } = useDashboardState()
+  } = dashboardState
   const resolvedSnapshot = snapshot ?? createEmptySnapshot()
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0)
-  const mainVerticalGap = 0
-  const mainHorizontalGap = 0
-  const contentHeight = Math.max(height - (8 + mainVerticalGap * 2), 10)
-  const topPaneHeight = Math.max(8, Math.floor(contentHeight * 0.4))
-  const bottomPaneHeight = Math.max(6, contentHeight - topPaneHeight)
-  const topPaneWidth = Math.max(24, Math.floor((Math.max(24, width) - mainHorizontalGap) / 2))
-  const bottomPaneWidth = Math.max(24, Math.floor((Math.max(24, width) - mainHorizontalGap) / 2))
+  const width = Math.max(terminalWidth, 1)
+  const height = Math.max(terminalHeight, HEADER_HEIGHT + 1)
+  const bodyHeight = Math.max(height - HEADER_HEIGHT, 1)
   const selectedSession = filteredSessions[selectedSessionIndex] ?? null
+  const useGridLayout = width >= MIN_GRID_WIDTH && bodyHeight >= MIN_GRID_BODY_HEIGHT
 
   function setTab(tab: ActiveAgent) {
     setActiveAgent(tab)
@@ -105,11 +161,10 @@ export function App({ onQuit }: AppProps) {
 
   useEffect(() => {
     setSelectedSessionIndex((currentIndex) => {
-      if (filteredSessions.length === 0) {
-        return 0
-      }
+      const nextIndex =
+        filteredSessions.length === 0 ? 0 : Math.min(currentIndex, filteredSessions.length - 1)
 
-      return Math.min(currentIndex, filteredSessions.length - 1)
+      return nextIndex === currentIndex ? currentIndex : nextIndex
     })
   }, [filteredSessions])
 
@@ -178,12 +233,92 @@ export function App({ onQuit }: AppProps) {
     }
   })
 
+  const paneWidth = Math.max(1, width)
+
+  const compactPanes: PaneDef[] = [
+    {
+      key: 'sessions',
+      render: (paneHeight) => (
+        <SessionListPane
+          activeFilter={activeAgent}
+          height={paneHeight}
+          selectedSessionIndex={selectedSessionIndex}
+          sessions={filteredSessions}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
+          width={paneWidth}
+        />
+      ),
+    },
+    {
+      key: 'details',
+      render: (paneHeight) => (
+        <SessionDetailsPane height={paneHeight} session={selectedSession} width={paneWidth} />
+      ),
+    },
+    {
+      key: 'trend',
+      render: (paneHeight) => (
+        <OverviewTrendPane height={paneHeight} points={trend} width={paneWidth} />
+      ),
+    },
+    {
+      key: 'drivers',
+      render: (paneHeight) => (
+        <OverviewDriversPane
+          height={paneHeight}
+          sessions={filteredSessions}
+          totals={resolvedSnapshot.totals}
+          width={paneWidth}
+        />
+      ),
+    },
+  ]
+
+  const compactPaneHeights = planPaneHeights(bodyHeight, compactPanes.length, MIN_STACK_PANE_HEIGHT)
+
+  if (!useGridLayout) {
+    return (
+      <box
+        style={{
+          flexDirection: 'column',
+          height,
+          width,
+        }}
+      >
+        <Header
+          activeTab={activeAgent}
+          error={error}
+          isRefreshing={isRefreshing}
+          snapshot={snapshot}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
+          tabs={AGENT_TABS}
+          timeWindow={timeWindow}
+          warningCount={resolvedSnapshot.warnings.length}
+          width={width}
+        />
+        <box style={{ flexDirection: 'column', height: bodyHeight, width }}>
+          {compactPaneHeights.map((paneHeight, index) => (
+            <Fragment key={compactPanes[index].key}>
+              {compactPanes[index].render(paneHeight)}
+            </Fragment>
+          ))}
+        </box>
+      </box>
+    )
+  }
+
+  const topPaneHeight = Math.max(1, Math.floor(bodyHeight * 0.45))
+  const bottomPaneHeight = Math.max(1, bodyHeight - topPaneHeight)
+  const leftPaneWidth = Math.floor(width / 2)
+  const rightPaneWidth = width - leftPaneWidth
+
   return (
     <box
       style={{
         flexDirection: 'column',
-        gap: mainVerticalGap,
-        height: Math.max(height, 12),
+        height,
         width,
       }}
     >
@@ -199,16 +334,16 @@ export function App({ onQuit }: AppProps) {
         warningCount={resolvedSnapshot.warnings.length}
         width={width}
       />
-      <box style={{ flexDirection: 'row', gap: mainHorizontalGap, height: topPaneHeight }}>
-        <OverviewTrendPane height={topPaneHeight} points={trend} width={topPaneWidth} />
+      <box style={{ flexDirection: 'row', height: topPaneHeight }}>
+        <OverviewTrendPane height={topPaneHeight} points={trend} width={leftPaneWidth} />
         <OverviewDriversPane
           height={topPaneHeight}
           sessions={filteredSessions}
           totals={resolvedSnapshot.totals}
-          width={topPaneWidth}
+          width={rightPaneWidth}
         />
       </box>
-      <box style={{ flexDirection: 'row', gap: mainHorizontalGap, height: bottomPaneHeight }}>
+      <box style={{ flexDirection: 'row', height: bottomPaneHeight }}>
         <SessionListPane
           activeFilter={activeAgent}
           height={bottomPaneHeight}
@@ -216,12 +351,12 @@ export function App({ onQuit }: AppProps) {
           sessions={filteredSessions}
           sortDirection={sortDirection}
           sortKey={sortKey}
-          width={bottomPaneWidth}
+          width={leftPaneWidth}
         />
         <SessionDetailsPane
           height={bottomPaneHeight}
           session={selectedSession}
-          width={bottomPaneWidth}
+          width={rightPaneWidth}
         />
       </box>
     </box>
