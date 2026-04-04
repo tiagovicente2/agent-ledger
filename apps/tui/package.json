@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run src/main.tsx"
+    "dev": "bun run src/main.tsx",
+    "test": "bun test"
   },
   "dependencies": {
     "@agent-ledger/service": "workspace:*",
