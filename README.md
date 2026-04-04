@@ -24,9 +24,9 @@ bun run dev
 
 ## Requirements
 
-- Bun installed
-- local agent data on the machine, unless you plan to run it against empty sources
-- SQLite support through Bun for reading the OpenCode database
+- Bun
+- Local agent data (unless you want to run against empty sources)
+- SQLite (for OpenCode data)
 
 ## Main Commands
 
