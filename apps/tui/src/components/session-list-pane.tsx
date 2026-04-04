@@ -40,6 +40,18 @@ function truncate(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(0, maxLength - 3))}...`
 }
 
+function truncateKeepEnd(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value
+  }
+
+  if (maxLength <= 3) {
+    return value.slice(Math.max(0, value.length - maxLength))
+  }
+
+  return `...${value.slice(Math.max(0, value.length - (maxLength - 3)))}`
+}
+
 function fitLine(value: string, width: number) {
   return truncate(value, width).padEnd(width, ' ')
 }
@@ -58,8 +70,9 @@ function formatTokens(value: number, columnWidth: number) {
   }).format(integerValue)
 }
 
-function pad(value: string, width: number) {
-  return truncate(value, width).padEnd(width, ' ')
+function pad(value: string, width: number, preferEnd = false) {
+  const formatted = preferEnd ? truncateKeepEnd(value, width) : truncate(value, width)
+  return formatted.padEnd(width, ' ')
 }
 
 function formatSortKey(value: 'recent' | 'token_usage' | 'est_cost') {
@@ -72,6 +85,15 @@ function formatSortKey(value: 'recent' | 'token_usage' | 'est_cost') {
   }
 
   return 'Recent'
+}
+
+function buildCenteredTopBorder(title: string, innerWidth: number): string {
+  const safeTitle = truncate(title, Math.max(1, innerWidth))
+  const decoratedTitle = safeTitle.length + 2 <= innerWidth ? ` ${safeTitle} ` : safeTitle
+  const totalFill = Math.max(0, innerWidth - decoratedTitle.length)
+  const leftFill = Math.floor(totalFill / 2)
+  const rightFill = totalFill - leftFill
+  return `┌${'─'.repeat(leftFill)}${decoratedTitle}${'─'.repeat(rightFill)}┐`
 }
 
 export function SessionListPane({
@@ -114,11 +136,7 @@ export function SessionListPane({
     Math.max(0, sessions.length - visibleSessionCount),
   )
   const visibleSessions = sessions.slice(startIndex, startIndex + visibleSessionCount)
-  const topBorderTitle = truncate(
-    `Sessions | Agent: ${activeFilter}`,
-    Math.max(1, contentWidth - 1),
-  )
-  const topBorder = `┌${topBorderTitle}${'─'.repeat(Math.max(0, contentWidth - topBorderTitle.length))}┐`
+  const topBorder = buildCenteredTopBorder(`Sessions | Agent: ${activeFilter}`, contentWidth)
   const bottomBorder = `└${'─'.repeat(contentWidth)}┘`
   const rows = [
     fitLine(
@@ -135,7 +153,7 @@ export function SessionListPane({
             const compactRow =
               `${isSelected ? '>' : ' '} ` +
               `${pad(formatAgent(session.agent), agentWidth)} ` +
-              `${pad(session.projectPath ?? 'unknown', compactProjectWidth)} ` +
+              `${pad(session.projectPath ?? 'unknown', compactProjectWidth, true)} ` +
               `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
               `${pad(formatUsd(session.estimatedCostUsd), costWidth)}`
 
@@ -145,7 +163,7 @@ export function SessionListPane({
           const fullRow =
             `${isSelected ? '>' : ' '} ` +
             `${pad(formatAgent(session.agent), agentWidth)} ` +
-            `${pad(session.projectPath ?? 'unknown', fullProjectWidth)} ` +
+            `${pad(session.projectPath ?? 'unknown', fullProjectWidth, true)} ` +
             `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
             `${pad(formatUsd(session.estimatedCostUsd), costWidth)} ` +
             `${pad(String(session.messageCount), messagesWidth)} ` +

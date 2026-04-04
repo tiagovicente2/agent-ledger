@@ -29,6 +29,18 @@ function truncate(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(0, maxLength - 3))}...`
 }
 
+function truncateKeepEnd(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value
+  }
+
+  if (maxLength <= 3) {
+    return value.slice(Math.max(0, value.length - maxLength))
+  }
+
+  return `...${value.slice(Math.max(0, value.length - (maxLength - 3)))}`
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
@@ -69,6 +81,15 @@ function buildBar(value: number, maxValue: number, maxWidth: number): string {
   return '█'.repeat(length)
 }
 
+function buildCenteredTopBorder(title: string, innerWidth: number): string {
+  const safeTitle = truncate(title, Math.max(1, innerWidth))
+  const decoratedTitle = safeTitle.length + 2 <= innerWidth ? ` ${safeTitle} ` : safeTitle
+  const totalFill = Math.max(0, innerWidth - decoratedTitle.length)
+  const leftFill = Math.floor(totalFill / 2)
+  const rightFill = totalFill - leftFill
+  return `┌${'─'.repeat(leftFill)}${decoratedTitle}${'─'.repeat(rightFill)}┐`
+}
+
 function buildCardRows(
   rows: DriverRow[],
   formatValue: (value: number) => string,
@@ -77,6 +98,7 @@ function buildCardRows(
     showBar: boolean
     maxLabelWidth: number
     compactValue?: (value: number) => string
+    preferEndLabel?: boolean
   },
 ) {
   if (rows.length === 0) {
@@ -108,7 +130,10 @@ function buildCardRows(
   const barWidth = options.showBar ? Math.max(2, options.rowWidth - labelWidth - valueWidth - 2) : 0
 
   return rows.map((row, index) => {
-    const label = truncate(row.label, labelWidth).padEnd(labelWidth, ' ')
+    const label = (options.preferEndLabel ? truncateKeepEnd : truncate)(
+      row.label,
+      labelWidth,
+    ).padEnd(labelWidth, ' ')
     const value = valueRows[index].padStart(valueWidth, ' ')
 
     if (!options.showBar) {
@@ -160,15 +185,19 @@ function renderCard(
 ) {
   const innerWidth = Math.max(8, cardWidth - 2)
   const rowCapacity = Math.max(1, cardHeight - 2)
-  const visibleRows = (rows.length > 0 ? rows : ['No data']).slice(0, rowCapacity)
+  const topMarginRows = 0
+  const availableContentRows = Math.max(0, rowCapacity - topMarginRows)
+  const visibleRows = (rows.length > 0 ? rows : ['No data']).slice(0, availableContentRows)
   const counts = new Map<string, number>()
   const lineCounts = new Map<string, number>()
-  const titleText = truncate(title, Math.max(1, innerWidth - 1))
-  const topBorder = `┌${titleText}${'─'.repeat(Math.max(0, innerWidth - titleText.length))}┐`
+  const topBorder = buildCenteredTopBorder(title, innerWidth)
   const bottomBorder = `└${'─'.repeat(innerWidth)}┘`
   const framedRows = [
+    ...new Array<number>(topMarginRows).fill(0).map(() => ''),
     ...visibleRows,
-    ...new Array<number>(Math.max(0, rowCapacity - visibleRows.length)).fill(0).map(() => ''),
+    ...new Array<number>(Math.max(0, rowCapacity - topMarginRows - visibleRows.length))
+      .fill(0)
+      .map(() => ''),
   ]
 
   return (
@@ -197,23 +226,22 @@ function renderCard(
 }
 
 export function OverviewDriversPane({ height, sessions, totals, width }: OverviewDriversPaneProps) {
-  const contentWidth = Math.max(20, width - 2)
-  const contentHeight = Math.max(1, height - 2)
+  const contentWidth = Math.max(20, width)
+  const contentHeight = Math.max(1, height)
 
   if (contentWidth < 24 || contentHeight < 3) {
     return (
       <box
         style={{
-          border: true,
           flexDirection: 'column',
           height,
           width,
           padding: 0,
         }}
       >
-        <text>{truncate('Overview', Math.max(8, contentWidth - 2))}</text>
+        <text>{truncate('Overview', Math.max(8, contentWidth))}</text>
         <text>
-          {truncate(`Total: ${formatTokens(totals.tokens.total)}`, Math.max(8, contentWidth - 2))}
+          {truncate(`Total: ${formatTokens(totals.tokens.total)}`, Math.max(8, contentWidth))}
         </text>
       </box>
     )
@@ -251,9 +279,7 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
   }
 
   const columnGap = wideLayout ? 1 : 0
-  const leftColumnWidth = wideLayout
-    ? Math.max(24, Math.floor((contentWidth - columnGap) / 2))
-    : contentWidth
+  const leftColumnWidth = wideLayout ? Math.floor((contentWidth - columnGap) / 2) : contentWidth
   const rightColumnWidth = wideLayout ? contentWidth - columnGap - leftColumnWidth : contentWidth
 
   const models = [...modelTokenMap.entries()]
@@ -276,7 +302,9 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
 
   if (wideLayout) {
     const rowGap = 0
-    const columnHeights = planCardHeights(contentHeight, 2, rowGap, 3)
+    const topRowHeight = Math.floor((contentHeight - rowGap) / 2)
+    const bottomRowHeight = contentHeight - rowGap - topRowHeight
+    const rowHeights = [topRowHeight, bottomRowHeight]
     const leftRowWidth = Math.max(8, leftColumnWidth - 2)
     const rightRowWidth = Math.max(8, rightColumnWidth - 2)
 
@@ -285,12 +313,14 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
       showBar: false,
       maxLabelWidth: clamp(Math.floor(leftRowWidth * 0.62), 12, 32),
       compactValue: formatCompactTokens,
+      preferEndLabel: true,
     })
     const topProjectRows = buildCardRows(projects.slice(0, 10), formatTokens, {
       rowWidth: leftRowWidth,
       showBar: false,
       maxLabelWidth: clamp(Math.floor(leftRowWidth * 0.62), 12, 32),
       compactValue: formatCompactTokens,
+      preferEndLabel: true,
     })
     const agentTokenRows = buildCardRows(agentTokens.slice(0, 10), formatTokens, {
       rowWidth: rightRowWidth,
@@ -324,7 +354,6 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     return (
       <box
         style={{
-          border: true,
           flexDirection: 'row',
           gap: columnGap,
           height,
@@ -335,12 +364,12 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
         <box
           style={{
             flexDirection: 'column',
-            gap: columnHeights.length > 1 ? rowGap : 0,
+            gap: rowGap,
             height: contentHeight,
             width: leftColumnWidth,
           }}
         >
-          {columnHeights.map((cardHeight, index) =>
+          {rowHeights.map((cardHeight, index) =>
             renderCard(
               leftCards[index].key,
               leftCards[index].title,
@@ -353,12 +382,12 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
         <box
           style={{
             flexDirection: 'column',
-            gap: columnHeights.length > 1 ? rowGap : 0,
+            gap: rowGap,
             height: contentHeight,
             width: rightColumnWidth,
           }}
         >
-          {columnHeights.map((cardHeight, index) =>
+          {rowHeights.map((cardHeight, index) =>
             renderCard(
               rightCards[index].key,
               rightCards[index].title,
@@ -379,6 +408,7 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     showBar: false,
     maxLabelWidth: clamp(Math.floor(stackRowWidth * 0.62), 12, 32),
     compactValue: formatCompactTokens,
+    preferEndLabel: true,
   })
   const agentTokenRows = buildCardRows(agentTokens.slice(0, 10), formatTokens, {
     rowWidth: stackRowWidth,
@@ -406,7 +436,6 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
   return (
     <box
       style={{
-        border: true,
         flexDirection: 'column',
         gap: stackHeights.length > 1 ? stackGap : 0,
         height,

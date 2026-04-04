@@ -92,16 +92,29 @@ function buildBar(value: number, maxValue: number, maxWidth: number): string {
   return '█'.repeat(length)
 }
 
+function buildCenteredTopBorder(title: string, innerWidth: number): string {
+  const safeTitle = truncate(title, Math.max(1, innerWidth))
+  const decoratedTitle = safeTitle.length + 2 <= innerWidth ? ` ${safeTitle} ` : safeTitle
+  const totalFill = Math.max(0, innerWidth - decoratedTitle.length)
+  const leftFill = Math.floor(totalFill / 2)
+  const rightFill = totalFill - leftFill
+  return `┌${'─'.repeat(leftFill)}${decoratedTitle}${'─'.repeat(rightFill)}┐`
+}
+
 function renderSection(title: string, lines: string[], width: number, height: number) {
   const innerWidth = Math.max(8, width - 2)
   const rowCapacity = Math.max(1, height - 2)
-  const visibleLines = (lines.length > 0 ? lines : ['No data']).slice(0, rowCapacity)
+  const topMarginRows = 0
+  const availableContentRows = Math.max(0, rowCapacity - topMarginRows)
+  const visibleLines = (lines.length > 0 ? lines : ['No data']).slice(0, availableContentRows)
   const framedRows = [
+    ...new Array<number>(topMarginRows).fill(0).map(() => ''),
     ...visibleLines,
-    ...new Array<number>(Math.max(0, rowCapacity - visibleLines.length)).fill(0).map(() => ''),
+    ...new Array<number>(Math.max(0, rowCapacity - topMarginRows - visibleLines.length))
+      .fill(0)
+      .map(() => ''),
   ]
-  const titleText = truncate(title, Math.max(1, innerWidth - 1))
-  const topBorder = `┌${titleText}${'─'.repeat(Math.max(0, innerWidth - titleText.length))}┐`
+  const topBorder = buildCenteredTopBorder(title, innerWidth)
   const bottomBorder = `└${'─'.repeat(innerWidth)}┘`
   const counts = new Map<string, number>()
 
@@ -180,7 +193,7 @@ export function Header({
 
   if (wideLayout) {
     const columnGap = 0
-    const leftWidth = Math.max(50, Math.floor((width - columnGap) * 0.58))
+    const leftWidth = Math.floor((width - columnGap) / 2)
     const rightWidth = width - columnGap - leftWidth
     const rightInnerWidth = Math.max(8, rightWidth - 2)
     const labelWidth = Math.min(11, Math.max(8, Math.floor(rightInnerWidth * 0.24)))

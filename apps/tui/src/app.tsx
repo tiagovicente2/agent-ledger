@@ -61,11 +61,13 @@ export function App({ onQuit }: AppProps) {
   } = useDashboardState()
   const resolvedSnapshot = snapshot ?? createEmptySnapshot()
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0)
-  const contentHeight = Math.max(height - 12, 10)
+  const mainVerticalGap = 0
+  const mainHorizontalGap = 0
+  const contentHeight = Math.max(height - (8 + mainVerticalGap * 2), 10)
   const topPaneHeight = Math.max(8, Math.floor(contentHeight * 0.4))
-  const bottomPaneHeight = Math.max(6, contentHeight - topPaneHeight - 1)
-  const topPaneWidth = Math.max(24, Math.floor((Math.max(24, width) - 1) / 2))
-  const bottomPaneWidth = Math.max(24, Math.floor((Math.max(24, width) - 1) / 2))
+  const bottomPaneHeight = Math.max(6, contentHeight - topPaneHeight)
+  const topPaneWidth = Math.max(24, Math.floor((Math.max(24, width) - mainHorizontalGap) / 2))
+  const bottomPaneWidth = Math.max(24, Math.floor((Math.max(24, width) - mainHorizontalGap) / 2))
   const selectedSession = filteredSessions[selectedSessionIndex] ?? null
 
   function setTab(tab: ActiveAgent) {
@@ -180,7 +182,7 @@ export function App({ onQuit }: AppProps) {
     <box
       style={{
         flexDirection: 'column',
-        gap: 1,
+        gap: mainVerticalGap,
         height: Math.max(height, 12),
         width,
       }}
@@ -197,7 +199,7 @@ export function App({ onQuit }: AppProps) {
         warningCount={resolvedSnapshot.warnings.length}
         width={width}
       />
-      <box style={{ flexDirection: 'row', gap: 1, height: topPaneHeight }}>
+      <box style={{ flexDirection: 'row', gap: mainHorizontalGap, height: topPaneHeight }}>
         <OverviewTrendPane height={topPaneHeight} points={trend} width={topPaneWidth} />
         <OverviewDriversPane
           height={topPaneHeight}
@@ -206,7 +208,7 @@ export function App({ onQuit }: AppProps) {
           width={topPaneWidth}
         />
       </box>
-      <box style={{ flexDirection: 'row', gap: 1, height: bottomPaneHeight }}>
+      <box style={{ flexDirection: 'row', gap: mainHorizontalGap, height: bottomPaneHeight }}>
         <SessionListPane
           activeFilter={activeAgent}
           height={bottomPaneHeight}

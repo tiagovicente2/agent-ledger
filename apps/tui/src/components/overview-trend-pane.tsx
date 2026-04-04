@@ -63,6 +63,15 @@ function fitCell(value: string, width: number) {
   return value.slice(0, width)
 }
 
+function buildCenteredTopBorder(title: string, innerWidth: number): string {
+  const safeTitle = truncate(title, Math.max(1, innerWidth))
+  const decoratedTitle = safeTitle.length + 2 <= innerWidth ? ` ${safeTitle} ` : safeTitle
+  const totalFill = Math.max(0, innerWidth - decoratedTitle.length)
+  const leftFill = Math.floor(totalFill / 2)
+  const rightFill = totalFill - leftFill
+  return `┌${'─'.repeat(leftFill)}${decoratedTitle}${'─'.repeat(rightFill)}┐`
+}
+
 // Use partial blocks for smoother bar appearance
 const FULL_BLOCK = '█'
 const SEVEN_EIGHTHS = '▉'
@@ -111,8 +120,7 @@ export function OverviewTrendPane({ height, points, width }: OverviewTrendPanePr
 
   barWidth = Math.max(2, barWidth)
 
-  const topBorderTitle = truncate('Token Trend', Math.max(1, contentWidth - 1))
-  const topBorder = `┌${topBorderTitle}${'─'.repeat(Math.max(0, contentWidth - topBorderTitle.length))}┐`
+  const topBorder = buildCenteredTopBorder('Token Trend', contentWidth)
   const bottomBorder = `└${'─'.repeat(contentWidth)}┘`
 
   const contentRows =
@@ -125,9 +133,16 @@ export function OverviewTrendPane({ height, points, width }: OverviewTrendPanePr
           return `${label} ${bar} ${value}`
         })
 
+  const topMarginRows = 0
+  const availableContentRows = Math.max(0, chartRows - topMarginRows)
   const framedRows = [
-    ...contentRows.slice(0, chartRows),
-    ...new Array<number>(Math.max(0, chartRows - contentRows.length)).fill(0).map(() => ''),
+    ...new Array<number>(topMarginRows).fill(0).map(() => ''),
+    ...contentRows.slice(0, availableContentRows),
+    ...new Array<number>(
+      Math.max(0, chartRows - topMarginRows - Math.min(contentRows.length, availableContentRows)),
+    )
+      .fill(0)
+      .map(() => ''),
   ]
   const counts = new Map<string, number>()
 

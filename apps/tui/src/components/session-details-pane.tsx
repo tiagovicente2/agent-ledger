@@ -19,6 +19,37 @@ function truncate(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(0, maxLength - 3))}...`
 }
 
+function truncateKeepEnd(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value
+  }
+
+  if (maxLength <= 3) {
+    return value.slice(Math.max(0, value.length - maxLength))
+  }
+
+  return `...${value.slice(Math.max(0, value.length - (maxLength - 3)))}`
+}
+
+function truncateRowForContext(value: string, maxLength: number) {
+  const prefixes = ['Project: ', 'Model: ']
+
+  for (const prefix of prefixes) {
+    if (!value.startsWith(prefix)) {
+      continue
+    }
+
+    if (maxLength <= prefix.length) {
+      return truncate(value, maxLength)
+    }
+
+    const suffix = truncateKeepEnd(value.slice(prefix.length), maxLength - prefix.length)
+    return `${prefix}${suffix}`
+  }
+
+  return truncate(value, maxLength)
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
@@ -85,13 +116,16 @@ function buildBar(value: number, maxValue: number, maxWidth: number): string {
   return '█'.repeat(length)
 }
 
-function buildTokenRows(
-  tokens: TokenTotals,
-  labelWidth: number,
-  barWidth: number,
-  cardInnerWidth: number,
-  columns: 1 | 2,
-) {
+function buildCenteredTopBorder(title: string, innerWidth: number): string {
+  const safeTitle = truncate(title, Math.max(1, innerWidth))
+  const decoratedTitle = safeTitle.length + 2 <= innerWidth ? ` ${safeTitle} ` : safeTitle
+  const totalFill = Math.max(0, innerWidth - decoratedTitle.length)
+  const leftFill = Math.floor(totalFill / 2)
+  const rightFill = totalFill - leftFill
+  return `┌${'─'.repeat(leftFill)}${decoratedTitle}${'─'.repeat(rightFill)}┐`
+}
+
+function buildTokenRows(tokens: TokenTotals, cardInnerWidth: number, columns: 1 | 2) {
   const rows = [
     { label: 'Input', value: tokens.input },
     { label: 'Output', value: tokens.output },
@@ -108,23 +142,28 @@ function buildTokenRows(
       return left.label.localeCompare(right.label)
     })
 
-  const maxValue = Math.max(1, ...rows.map((row) => row.value), tokens.total)
+  const maxValue = Math.max(1, ...rows.map((row) => row.value))
+  const maxLabelLength = Math.max(5, ...rows.map((row) => row.label.length))
 
-  const compactMode = columns === 2
-  const effectiveLabelWidth = compactMode ? clamp(Math.floor(labelWidth * 0.72), 5, 9) : labelWidth
-  const effectiveBarWidth = compactMode ? clamp(Math.floor(barWidth * 0.45), 2, 5) : barWidth
-
-  const formattedRows = rows.map((row) => {
-    const bar = buildBar(row.value, maxValue, effectiveBarWidth).padEnd(effectiveBarWidth, ' ')
+  function formatTokenRow(row: { label: string; value: number }, rowWidth: number): string {
     const percent = tokens.total > 0 ? Math.round((row.value / tokens.total) * 100) : 0
-    const label = truncate(row.label, effectiveLabelWidth).padEnd(effectiveLabelWidth, ' ')
+    const fullValue = `${row.value.toLocaleString()} (${percent}%)`
+    const compactValue = `${formatCompactTokens(row.value)} ${percent}%`
+    const labelWidth = clamp(maxLabelLength, 6, Math.max(6, Math.min(12, rowWidth - 8)))
+    const minBarWidth = 4
 
-    if (compactMode) {
-      return `${label} ${bar} ${formatCompactTokens(row.value)} ${percent}%`
-    }
+    const fullBarWidth = rowWidth - labelWidth - fullValue.length - 2
+    const useCompactValue = fullBarWidth < minBarWidth
+    const value = useCompactValue ? compactValue : fullValue
+    const valueWidth = value.length
+    const barWidth = Math.max(2, rowWidth - labelWidth - valueWidth - 2)
+    const label = truncate(row.label, labelWidth).padEnd(labelWidth, ' ')
+    const bar = buildBar(row.value, maxValue, barWidth).padEnd(barWidth, ' ')
 
-    return `${label} ${bar} ${row.value.toLocaleString()} (${percent}%)`
-  })
+    return `${label} ${bar} ${value.padStart(valueWidth, ' ')}`
+  }
+
+  const formattedRows = rows.map((row) => formatTokenRow(row, Math.max(12, cardInnerWidth)))
 
   if (columns === 1 || formattedRows.length <= 1) {
     return formattedRows
@@ -133,11 +172,12 @@ function buildTokenRows(
   const columnGap = '  '
   const columnWidth = Math.max(10, Math.floor((cardInnerWidth - columnGap.length) / 2))
   const pairedRows: string[] = []
+  const perColumnRows = rows.map((row) => formatTokenRow(row, columnWidth))
 
-  for (let index = 0; index < formattedRows.length; index += 2) {
-    const left = truncate(formattedRows[index], columnWidth).padEnd(columnWidth, ' ')
+  for (let index = 0; index < perColumnRows.length; index += 2) {
+    const left = truncate(perColumnRows[index], columnWidth).padEnd(columnWidth, ' ')
     const right =
-      index + 1 < formattedRows.length ? truncate(formattedRows[index + 1], columnWidth) : ''
+      index + 1 < perColumnRows.length ? truncate(perColumnRows[index + 1], columnWidth) : ''
     pairedRows.push(`${left}${columnGap}${right}`.trimEnd())
   }
 
@@ -174,49 +214,6 @@ function planCardHeights(
   return heights
 }
 
-function planCardHeightsByRows(totalHeight: number, gap: number, rowsPerCard: number[]) {
-  if (rowsPerCard.length === 0 || totalHeight <= 0) {
-    return []
-  }
-
-  const minHeight = 3
-  const count = rowsPerCard.length
-  const heights = new Array<number>(count).fill(minHeight)
-  let remaining = totalHeight - (count * minHeight + (count - 1) * gap)
-
-  if (remaining <= 0) {
-    return heights
-  }
-
-  const desiredHeights = rowsPerCard.map((rowCount) => Math.max(minHeight, rowCount + 2))
-  const order = [...rowsPerCard.keys()].sort((left, right) => {
-    if (rowsPerCard[right] !== rowsPerCard[left]) {
-      return rowsPerCard[right] - rowsPerCard[left]
-    }
-
-    return left - right
-  })
-
-  for (const index of order) {
-    if (remaining <= 0) {
-      break
-    }
-
-    const growBy = Math.min(remaining, Math.max(0, desiredHeights[index] - heights[index]))
-    heights[index] += growBy
-    remaining -= growBy
-  }
-
-  let cursor = 0
-  while (remaining > 0) {
-    heights[order[cursor % order.length]] += 1
-    remaining -= 1
-    cursor += 1
-  }
-
-  return heights
-}
-
 function renderCard(
   key: string,
   title: string,
@@ -226,18 +223,17 @@ function renderCard(
 ) {
   const innerWidth = Math.max(8, cardWidth - 2)
   const rowCapacity = Math.max(1, cardHeight - 2)
-  const visibleRows = (rows.length > 0 ? rows : ['No data']).slice(0, rowCapacity)
-  const paddingRows = Math.max(0, rowCapacity - visibleRows.length)
-  const topPaddingRows = Math.floor(paddingRows / 2)
-  const bottomPaddingRows = paddingRows - topPaddingRows
+  const topMarginRows = 0
+  const availableContentRows = Math.max(0, rowCapacity - topMarginRows)
+  const visibleRows = (rows.length > 0 ? rows : ['No data']).slice(0, availableContentRows)
+  const bottomPaddingRows = Math.max(0, rowCapacity - topMarginRows - visibleRows.length)
   const framedRows = [
-    ...new Array<number>(topPaddingRows).fill(0).map(() => ''),
+    ...new Array<number>(topMarginRows).fill(0).map(() => ''),
     ...visibleRows,
     ...new Array<number>(bottomPaddingRows).fill(0).map(() => ''),
   ]
   const counts = new Map<string, number>()
-  const titleText = truncate(title, Math.max(1, innerWidth - 1))
-  const topBorder = `┌${titleText}${'─'.repeat(Math.max(0, innerWidth - titleText.length))}┐`
+  const topBorder = buildCenteredTopBorder(title, innerWidth)
   const bottomBorder = `└${'─'.repeat(innerWidth)}┘`
 
   return (
@@ -255,7 +251,7 @@ function renderCard(
         const lineKey = row.length > 0 ? row : '__blank__'
         const count = (counts.get(lineKey) ?? 0) + 1
         counts.set(lineKey, count)
-        const content = truncate(row, innerWidth).padEnd(innerWidth, ' ')
+        const content = truncateRowForContext(row, innerWidth).padEnd(innerWidth, ' ')
         return <text key={`${key}-${lineKey}-${count}`}>{`│${content}│`}</text>
       })}
       <text>{bottomBorder}</text>
@@ -264,14 +260,13 @@ function renderCard(
 }
 
 export function SessionDetailsPane({ height, session, width }: SessionDetailsPaneProps) {
-  const contentWidth = Math.max(20, width - 2)
-  const contentHeight = Math.max(1, height - 2)
+  const contentWidth = Math.max(20, width)
+  const contentHeight = Math.max(1, height)
 
   if (contentWidth < 24 || contentHeight < 3) {
     return (
       <box
         style={{
-          border: true,
           flexDirection: 'column',
           height,
           width,
@@ -281,7 +276,7 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
         <text>
           {truncate(
             session ? `Agent: ${session.agent}` : 'No session selected',
-            Math.max(8, contentWidth - 2),
+            Math.max(8, contentWidth),
           )}
         </text>
       </box>
@@ -294,7 +289,6 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
     return (
       <box
         style={{
-          border: true,
           flexDirection: 'column',
           height,
           width,
@@ -307,9 +301,6 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
   }
 
   const wideLayout = contentWidth >= 72 && cardsHeight >= 7
-  const localWidth = wideLayout ? Math.floor((contentWidth - 1) / 2) : contentWidth
-  const labelWidth = clamp(Math.floor(localWidth * 0.3), 9, 14)
-  const barWidth = clamp(Math.floor(localWidth * 0.24), 6, 12)
 
   const summaryRows = [
     `Agent: ${session.agent}`,
@@ -331,15 +322,6 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
     ...(session.inferenceReason ? [`Reason: ${session.inferenceReason}`] : []),
   ]
 
-  const tokenColumns: 1 | 2 = localWidth <= 44 ? 2 : 1
-  const tokenRows = buildTokenRows(
-    session.tokenTotals,
-    labelWidth,
-    barWidth,
-    Math.max(8, localWidth - 2),
-    tokenColumns,
-  )
-
   const tokenTotal = Math.max(1, session.tokenTotals.total)
   const durationMinutes = Math.max(
     1,
@@ -357,10 +339,13 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
 
   if (wideLayout) {
     const columnGap = 1
-    const desiredLeftWidth = Math.floor((contentWidth - columnGap) * 0.45)
-    const leftColumnWidth = Math.max(24, desiredLeftWidth)
-    const rightColumnWidth = Math.max(28, contentWidth - columnGap - leftColumnWidth)
+    const leftColumnWidth = Math.floor((contentWidth - columnGap) / 2)
+    const rightColumnWidth = contentWidth - columnGap - leftColumnWidth
     const rowGap = 0
+    const topRowHeight = Math.floor((cardsHeight - rowGap) / 2)
+    const bottomRowHeight = cardsHeight - rowGap - topRowHeight
+    const rowHeights = [topRowHeight, bottomRowHeight]
+    const tokenRows = buildTokenRows(session.tokenTotals, Math.max(8, rightColumnWidth - 2), 1)
 
     const leftCards: CardDef[] = [
       { key: 'summary', title: 'Session Summary', rows: summaryRows },
@@ -370,21 +355,9 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
       { key: 'tokens', title: 'Token Mix', rows: tokenRows },
       { key: 'metrics', title: 'Session Metrics', rows: metricsRows },
     ]
-    const leftHeights = planCardHeightsByRows(
-      cardsHeight,
-      rowGap,
-      leftCards.map((card) => card.rows.length),
-    )
-    const rightHeights = planCardHeightsByRows(
-      cardsHeight,
-      rowGap,
-      rightCards.map((card) => card.rows.length),
-    )
-
     return (
       <box
         style={{
-          border: true,
           flexDirection: 'column',
           height,
           width,
@@ -402,12 +375,12 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
           <box
             style={{
               flexDirection: 'column',
-              gap: leftHeights.length > 1 ? rowGap : 0,
+              gap: rowGap,
               height: cardsHeight,
               width: leftColumnWidth,
             }}
           >
-            {leftHeights.map((cardHeight, index) =>
+            {rowHeights.map((cardHeight, index) =>
               renderCard(
                 leftCards[index].key,
                 leftCards[index].title,
@@ -420,12 +393,12 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
           <box
             style={{
               flexDirection: 'column',
-              gap: rightHeights.length > 1 ? rowGap : 0,
+              gap: rowGap,
               height: cardsHeight,
               width: rightColumnWidth,
             }}
           >
-            {rightHeights.map((cardHeight, index) =>
+            {rowHeights.map((cardHeight, index) =>
               renderCard(
                 rightCards[index].key,
                 rightCards[index].title,
@@ -441,6 +414,8 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
   }
 
   const stackGap = 0
+  const tokenColumns: 1 | 2 = contentWidth <= 44 ? 2 : 1
+  const tokenRows = buildTokenRows(session.tokenTotals, Math.max(8, contentWidth - 2), tokenColumns)
   const cards: CardDef[] = [
     { key: 'summary', title: 'Session Summary', rows: summaryRows },
     { key: 'context', title: 'Context', rows: contextRows },
@@ -451,7 +426,6 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
   return (
     <box
       style={{
-        border: true,
         flexDirection: 'column',
         gap: stackHeights.length > 1 ? stackGap : 0,
         height,
