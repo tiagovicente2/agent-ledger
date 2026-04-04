@@ -48,5 +48,15 @@ The TUI shows:
 - token totals and estimated costs
 - session lists with filtering and sorting
 - per-agent and per-model usage drivers
+- always-on session context and token mix details for the selected session
 
-Use `r` to refresh from local sources and `q` to quit.
+## TUI Navigation
+
+- `1..5` switch tabs
+- `[` / `]` cycle tabs
+- `t` cycle time window
+- `s` cycle sort key
+- `a` toggle sort order
+- `j` / `k` or arrows move session selection
+- `r` refresh from local sources
+- `q` quit

@@ -240,21 +240,15 @@ const row = [
 ].join(' ')
 ```
 
-- [ ] **Step 2: Add expandable details and warning toggle**
+- [ ] **Step 2: Stabilize session details content layout**
 
 ```tsx
-// apps/tui/src/app.tsx (state excerpt)
-const [detailsExpanded, setDetailsExpanded] = useState(false)
-const [warningsOpen, setWarningsOpen] = useState(false)
-
-if (event.name === 'return') setDetailsExpanded((value) => !value)
-if (event.name === 'w') setWarningsOpen((value) => !value)
-```
-
-```tsx
-// apps/tui/src/components/session-details-pane.tsx (conditional excerpt)
-{detailsExpanded ? extendedLines.map(...) : compactLines.map(...) }
-{warningsOpen ? warningLines.map(...) : null}
+// apps/tui/src/components/session-details-pane.tsx (layout excerpt)
+const cards = [
+  { key: 'summary', title: 'Session Summary', rows: summaryRows },
+  { key: 'context', title: 'Context', rows: contextRows },
+  { key: 'tokens', title: 'Token Mix', rows: tokenRows },
+]
 ```
 
 - [ ] **Step 3: Verify task output**
@@ -266,7 +260,7 @@ Run: `bunx @biomejs/biome check .`
 Expected: no Biome violations
 
 Manual smoke: `bun run dev`
-Expected: selection remains stable while changing sort/tab/window; details and warnings toggles work
+Expected: selection remains stable while changing sort/tab/window and details cards remain readable
 
 ### Task 5: Exit Cleanly and Final UX Verification
 

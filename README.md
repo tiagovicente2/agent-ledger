@@ -19,8 +19,6 @@ bun run dev
 - `s` cycle sort key
 - `a` toggle sort order
 - `j` / `k` or arrows move session selection
-- `enter` toggle expanded session details
-- `w` toggle warning details
 - `r` refresh
 - `q` quit
 
