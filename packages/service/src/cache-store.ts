@@ -5,7 +5,7 @@ import type { SourceFingerprint, SourceFingerprintSnapshot } from './fingerprint
 import { fingerprintsMatch } from './fingerprints'
 import type { SummarySnapshot } from './types'
 
-export const CACHE_PAYLOAD_VERSION = 3
+export const CACHE_PAYLOAD_VERSION = 4
 
 export interface CachePayload {
   version: typeof CACHE_PAYLOAD_VERSION
