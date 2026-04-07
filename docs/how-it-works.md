@@ -25,7 +25,6 @@ Source discovery is best-effort:
 
 - missing sources do not crash the app
 - each source is reported as `ready`, `partial`, `not_detected`, or `error`
-- Codex stays dormant unless local runtime data is detected
 
 ## Snapshot and Cache
 
@@ -49,14 +48,3 @@ The TUI shows:
 - session lists with filtering and sorting
 - per-agent and per-model usage drivers
 - always-on session context and token mix details for the selected session
-
-## TUI Navigation
-
-- `1..5` switch tabs
-- `[` / `]` cycle tabs
-- `t` cycle time window
-- `s` cycle sort key
-- `a` toggle sort order
-- `j` / `k` or arrows move session selection
-- `r` refresh from local sources
-- `q` quit
