@@ -15,8 +15,9 @@
 - There is no maintained test suite in this repo anymore. Do not add or rely on `bun test` unless the user explicitly asks for tests again.
 
 - Release flow is GitHub Actions only:
-  - `.github/workflows/publish.yml` runs `release:version -> build:release -> release:publish`
-  - the workflow validates with `bun run typecheck` only
+  - `.github/workflows/release-tag.yml` creates the release commit and pushes a `v*` tag
+  - `.github/workflows/publish.yml` is tag-driven; it builds and publishes on `v*` pushes or manual tag re-publish
+  - the publish workflow validates with `bun run typecheck` only
   - `script/build.ts` must keep `bun install --os="*" --cpu="*"` or cross-arch OpenTUI builds break
 
 - Installer hosting is repo-local:
@@ -24,8 +25,7 @@
   - `script/install-server.ts` serves `/install` and `/healthz`
   - root `Dockerfile` packages that installer service
 
-- TUI chrome gotcha:
-  - `apps/tui/src/components/header.tsx` is currently unused; the active chrome lives in `StatusBar` plus the modal components. Check `app.tsx` before editing `header.tsx`.
+- TUI chrome lives in `apps/tui/src/app.tsx` plus `StatusBar` and the modal components; there is no separate header component anymore.
 
 - Path/model formatting is intentionally custom:
   - `path-truncation.ts` keeps slash-aligned path suffixes like `/routers/foo` instead of mid-word truncation
