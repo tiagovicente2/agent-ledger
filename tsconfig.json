@@ -1,15 +1,17 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@tsconfig/bun/tsconfig.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+    "noUncheckedIndexedAccess": false,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "lib": ["ESNext"],
-    "types": ["node"]
+    "lib": ["ESNext"]
   },
-  "include": ["src", "test"]
+  "include": ["script/**/*.ts"]
 }
