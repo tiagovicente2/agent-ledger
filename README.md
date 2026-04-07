@@ -4,10 +4,14 @@ Agent Ledger is a Bun monorepo that reads local coding-agent usage data and show
 
 ## Installation
 
+Linux and macOS:
+
 ```sh
 curl -fsSL https://al.arpgg.io/install | bash
 agent-ledger
 ```
+
+The installer prefers a user-writable directory that is already on `PATH`, so on most setups the command is available immediately after install.
 
 ## Local Development
 

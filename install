@@ -19,6 +19,7 @@ Options:
 Examples:
   curl -fsSL https://al.arpgg.io/install | bash
   curl -fsSL https://al.arpgg.io/install | bash -s -- --version 0.1.0
+  curl -fsSL https://al.arpgg.io/install | bash -s -- --no-modify-path
 EOF
 }
 
@@ -70,6 +71,42 @@ resolve_install_dir() {
     return
   fi
 
+  local path_entry=""
+  local path_dir=""
+
+  IFS=':' read -r -a path_entries <<< "$PATH"
+  for path_entry in "${path_entries[@]}"; do
+    [[ -n "$path_entry" ]] || continue
+    [[ "$path_entry" == "." ]] && continue
+
+    case "$path_entry" in
+      "$HOME"|"$HOME"/*)
+        path_dir="$path_entry"
+        ;;
+      *)
+        continue
+        ;;
+    esac
+
+    if [[ -d "$path_dir" && -w "$path_dir" ]]; then
+      printf '%s\n' "$path_dir"
+      return
+    fi
+
+    if [[ ! -e "$path_dir" ]]; then
+      parent_dir="$(dirname "$path_dir")"
+      if [[ -d "$parent_dir" && -w "$parent_dir" ]] && mkdir -p "$path_dir" 2>/dev/null; then
+        printf '%s\n' "$path_dir"
+        return
+      fi
+    fi
+  done
+
+  if [[ -d "$HOME/.local/bin" ]] || mkdir -p "$HOME/.local/bin" 2>/dev/null; then
+    printf '%s\n' "$HOME/.local/bin"
+    return
+  fi
+
   if [[ -d "$HOME/bin" ]] || mkdir -p "$HOME/bin" 2>/dev/null; then
     printf '%s\n' "$HOME/bin"
     return
@@ -79,6 +116,7 @@ resolve_install_dir() {
 }
 
 INSTALL_DIR="$(resolve_install_dir)"
+ESCAPED_INSTALL_DIR=$(printf '%q' "$INSTALL_DIR")
 mkdir -p "$INSTALL_DIR"
 
 if [[ -n "$binary_path" ]]; then
@@ -90,10 +128,18 @@ if [[ -n "$binary_path" ]]; then
   install -m 755 "$binary_path" "$INSTALL_DIR/$APP_NAME"
 else
   raw_os="$(uname -s)"
-  if [[ "$raw_os" != "Linux" ]]; then
-    echo "Error: $APP_NAME currently supports Linux installer builds only." >&2
-    exit 1
-  fi
+  case "$raw_os" in
+    Linux)
+      asset_os="linux"
+      ;;
+    Darwin)
+      asset_os="darwin"
+      ;;
+    *)
+      echo "Error: unsupported operating system '$raw_os'" >&2
+      exit 1
+      ;;
+  esac
 
   arch="$(uname -m)"
   case "$arch" in
@@ -109,7 +155,7 @@ else
       ;;
   esac
 
-  filename="$APP_NAME-linux-$asset_arch.tar.gz"
+  filename="$APP_NAME-$asset_os-$asset_arch.tar.gz"
   requested_version="${requested_version#v}"
 
   if [[ -z "$requested_version" ]]; then
@@ -167,9 +213,14 @@ if [[ "$no_modify_path" != "true" ]] && [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; t
 
   if [[ -n "$config_file" ]]; then
     touch "$config_file"
-    add_to_path "$config_file" "export PATH=$INSTALL_DIR:\$PATH"
+    add_to_path "$config_file" "export PATH=$ESCAPED_INSTALL_DIR:\$PATH"
   fi
 fi
 
 echo "Installed $APP_NAME to $INSTALL_DIR/$APP_NAME"
-echo "Run: $APP_NAME"
+if [[ ":$PATH:" == *":$INSTALL_DIR:"* ]]; then
+  echo "Run: $APP_NAME"
+else
+  echo "Run now: \"$INSTALL_DIR/$APP_NAME\""
+  echo "Then open a new shell or run: export PATH=$ESCAPED_INSTALL_DIR:\$PATH"
+fi

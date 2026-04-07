@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 
 import { $ } from 'bun'
-
 function resolveTag() {
   const tagFromEnv = String(process.env.AGENT_LEDGER_TAG ?? process.env.GITHUB_REF_NAME ?? '')
     .trim()
@@ -41,4 +40,5 @@ if (existingRelease.exitCode !== 0) {
 }
 
 await $`gh release upload ${tag} ./dist/*.tar.gz --clobber`
+
 await $`gh release edit ${tag} --draft=false --latest`
