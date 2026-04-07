@@ -1,0 +1,52 @@
+name: release-tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Bump major, minor, or patch
+        required: false
+        default: patch
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      version:
+        description: Explicit version override
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.version || inputs.bump }}
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.version.outputs.branch }}
+      commit: ${{ steps.version.outputs.commit }}
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Configure Git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release commit and tag
+        id: version
+        env:
+          AGENT_LEDGER_BUMP: ${{ inputs.bump }}
+          AGENT_LEDGER_VERSION: ${{ inputs.version }}
+        run: bun run release:version

@@ -10,7 +10,6 @@ const requestedVersion = String(process.env.AGENT_LEDGER_VERSION ?? '')
   .trim()
   .replace(/^v/, '')
 const requestedBump = String(process.env.AGENT_LEDGER_BUMP ?? 'patch').trim()
-const githubRepository = String(process.env.GITHUB_REPOSITORY ?? '').trim()
 
 function bumpVersion(version: string, bump: string) {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version)
@@ -86,22 +85,4 @@ const commit = (await $`git rev-parse HEAD`.text()).trim()
 await $`git tag ${tag}`
 await $`git push origin HEAD:${branch} --tags`
 
-const notesPath = `${process.env.RUNNER_TEMP ?? '/tmp'}/agent-ledger-release-notes.txt`
-await Bun.write(notesPath, `Release ${tag}`)
-await $`gh release create ${tag} --draft --title ${tag} --notes-file ${notesPath}`
-
-const release = (await $`gh release view ${tag} --json databaseId,tagName,url`.json()) as {
-  databaseId: number
-  tagName: string
-  url: string
-}
-
-await writeOutputs([
-  `version=${nextVersion}`,
-  `tag=${release.tagName}`,
-  `release=${release.databaseId}`,
-  `release_url=${release.url}`,
-  `repo=${githubRepository}`,
-  `branch=${branch}`,
-  `commit=${commit}`,
-])
+await writeOutputs([`version=${nextVersion}`, `tag=${tag}`, `branch=${branch}`, `commit=${commit}`])
