@@ -65,10 +65,6 @@ if (!currentVersion) {
 
 const nextVersion = requestedVersion || bumpVersion(currentVersion, requestedBump)
 
-if (nextVersion === currentVersion) {
-  throw new Error(`Refusing to release ${nextVersion} because it matches the current version`)
-}
-
 const tag = `v${nextVersion}`
 const branch = await resolveBranch()
 
@@ -78,14 +74,17 @@ if (existingTag === tag) {
   throw new Error(`Tag ${tag} already exists`)
 }
 
-packageJson.version = nextVersion
-await Bun.write(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
+if (nextVersion !== currentVersion) {
+  packageJson.version = nextVersion
+  await Bun.write(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`)
 
-await $`git add package.json`
-await $`git commit -m ${`release: ${tag}`}`
+  await $`git add package.json`
+  await $`git commit -m ${`release: ${tag}`}`
+}
+
+const commit = (await $`git rev-parse HEAD`.text()).trim()
 await $`git tag ${tag}`
 await $`git push origin HEAD:${branch} --tags`
-const commit = (await $`git rev-parse HEAD`.text()).trim()
 
 const notesPath = `${process.env.RUNNER_TEMP ?? '/tmp'}/agent-ledger-release-notes.txt`
 await Bun.write(notesPath, `Release ${tag}`)
