@@ -1,0 +1,105 @@
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Bump major, minor, or patch
+        required: false
+        default: patch
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      version:
+        description: Explicit version override
+        required: false
+        type: string
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.version || inputs.bump }}
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.version.outputs.branch }}
+      release: ${{ steps.version.outputs.release }}
+      release_url: ${{ steps.version.outputs.release_url }}
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Configure Git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Version release
+        id: version
+        env:
+          AGENT_LEDGER_BUMP: ${{ inputs.bump }}
+          AGENT_LEDGER_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run release:version
+
+  build:
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.version.outputs.tag }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Validate workspace
+        run: bun run typecheck
+
+      - name: Build release assets
+        run: bun run build:release
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: dist/*.tar.gz
+
+  publish:
+    runs-on: ubuntu-latest
+    needs:
+      - version
+      - build
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.version.outputs.tag }}
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: dist
+
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bun run release:publish

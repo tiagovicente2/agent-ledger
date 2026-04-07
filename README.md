@@ -2,7 +2,19 @@
 
 Agent Ledger is a Bun monorepo that reads local coding-agent usage data and shows a summarized snapshot in an OpenTUI dashboard.
 
-## Quick Start
+## Installation
+
+```sh
+curl -fsSL https://al.arpgg.io/install | bash
+```
+
+## Usage
+
+```sh
+agent-ledger
+```
+
+## Local Development
 
 From the project root:
 
@@ -32,6 +44,7 @@ bun run dev
 
 - `bun run dev`
 - `bun run snapshot`
+- `bun run build:release`
 
 ## Documentation
 

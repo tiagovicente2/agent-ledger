@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="agent-ledger"
+REPO="${AGENT_LEDGER_REPO:-tiagovicente2/agent-ledger}"
+
+usage() {
+  cat <<'EOF'
+Agent Ledger Installer
+
+Usage: install [options]
+
+Options:
+  -h, --help              Display this help message
+  -v, --version <version> Install a specific version (for example: 0.1.0)
+  -b, --binary <path>     Install from a local binary instead of downloading
+      --no-modify-path    Don't modify shell config files
+
+Examples:
+  curl -fsSL https://al.arpgg.io/install | bash
+  curl -fsSL https://al.arpgg.io/install | bash -s -- --version 0.1.0
+EOF
+}
+
+requested_version="${VERSION:-}"
+binary_path=""
+no_modify_path=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -v|--version)
+      if [[ -z "${2:-}" ]]; then
+        echo "Error: --version requires a value" >&2
+        exit 1
+      fi
+      requested_version="$2"
+      shift 2
+      ;;
+    -b|--binary)
+      if [[ -z "${2:-}" ]]; then
+        echo "Error: --binary requires a value" >&2
+        exit 1
+      fi
+      binary_path="$2"
+      shift 2
+      ;;
+    --no-modify-path)
+      no_modify_path=true
+      shift
+      ;;
+    *)
+      echo "Warning: ignoring unknown option '$1'" >&2
+      shift
+      ;;
+  esac
+done
+
+resolve_install_dir() {
+  if [[ -n "${AGENT_LEDGER_INSTALL_DIR:-}" ]]; then
+    printf '%s\n' "$AGENT_LEDGER_INSTALL_DIR"
+    return
+  fi
+
+  if [[ -n "${XDG_BIN_DIR:-}" ]]; then
+    printf '%s\n' "$XDG_BIN_DIR"
+    return
+  fi
+
+  if [[ -d "$HOME/bin" ]] || mkdir -p "$HOME/bin" 2>/dev/null; then
+    printf '%s\n' "$HOME/bin"
+    return
+  fi
+
+  printf '%s\n' "$HOME/.agent-ledger/bin"
+}
+
+INSTALL_DIR="$(resolve_install_dir)"
+mkdir -p "$INSTALL_DIR"
+
+if [[ -n "$binary_path" ]]; then
+  if [[ ! -f "$binary_path" ]]; then
+    echo "Error: binary not found at $binary_path" >&2
+    exit 1
+  fi
+
+  install -m 755 "$binary_path" "$INSTALL_DIR/$APP_NAME"
+else
+  raw_os="$(uname -s)"
+  if [[ "$raw_os" != "Linux" ]]; then
+    echo "Error: $APP_NAME currently supports Linux installer builds only." >&2
+    exit 1
+  fi
+
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64)
+      asset_arch="x64"
+      ;;
+    aarch64|arm64)
+      asset_arch="arm64"
+      ;;
+    *)
+      echo "Error: unsupported architecture '$arch'" >&2
+      exit 1
+      ;;
+  esac
+
+  filename="$APP_NAME-linux-$asset_arch.tar.gz"
+  requested_version="${requested_version#v}"
+
+  if [[ -z "$requested_version" ]]; then
+    download_url="https://github.com/$REPO/releases/latest/download/$filename"
+  else
+    download_url="https://github.com/$REPO/releases/download/v${requested_version}/$filename"
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "Error: curl is required but not installed." >&2
+    exit 1
+  fi
+
+  if ! command -v tar >/dev/null 2>&1; then
+    echo "Error: tar is required but not installed." >&2
+    exit 1
+  fi
+
+  temp_dir="$(mktemp -d)"
+  cleanup() {
+    rm -rf "$temp_dir"
+  }
+  trap cleanup EXIT INT TERM
+
+  archive_path="$temp_dir/$filename"
+  echo "Downloading $download_url"
+  curl -fsSL "$download_url" -o "$archive_path"
+  tar -xzf "$archive_path" -C "$temp_dir"
+  install -m 755 "$temp_dir/$APP_NAME" "$INSTALL_DIR/$APP_NAME"
+fi
+
+add_to_path() {
+  local config_file="$1"
+  local command="$2"
+
+  if grep -Fxq "$command" "$config_file"; then
+    return
+  fi
+
+  printf '\n# agent-ledger\n%s\n' "$command" >> "$config_file"
+}
+
+if [[ "$no_modify_path" != "true" ]] && [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+  current_shell="$(basename "${SHELL:-bash}")"
+  config_file=""
+
+  case "$current_shell" in
+    zsh)
+      config_file="${ZDOTDIR:-$HOME}/.zshrc"
+      ;;
+    bash|sh)
+      config_file="$HOME/.bashrc"
+      ;;
+  esac
+
+  if [[ -n "$config_file" ]]; then
+    touch "$config_file"
+    add_to_path "$config_file" "export PATH=$INSTALL_DIR:\$PATH"
+  fi
+fi
+
+echo "Installed $APP_NAME to $INSTALL_DIR/$APP_NAME"
+echo "Run: $APP_NAME"

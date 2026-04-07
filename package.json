@@ -1,11 +1,13 @@
 {
   "name": "agent-ledger",
+  "version": "0.1.0",
   "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "devDependencies": {
+    "@types/bun": "latest",
     "@biomejs/biome": "^2.4.10",
     "@types/node": "^24.5.2",
     "@types/react": "^19.2.2",
@@ -15,6 +17,9 @@
     "dev": "bun run --cwd apps/tui dev",
     "snapshot": "bun run --cwd packages/service snapshot",
     "test": "bun test",
-    "typecheck": "tsc -p packages/service/tsconfig.json --noEmit && tsc -p apps/tui/tsconfig.json --noEmit"
+    "typecheck": "tsc -p packages/service/tsconfig.json --noEmit && tsc -p apps/tui/tsconfig.json --noEmit && tsc -p tsconfig.tools.json --noEmit",
+    "build:release": "bun run script/build.ts",
+    "release:version": "bun run script/version.ts",
+    "release:publish": "bun run script/publish.ts"
   }
 }
