@@ -1,5 +1,7 @@
 import type { SummarySnapshot } from '@agent-ledger/service'
 
+import { formatPathLeaf } from '../path-truncation.ts'
+
 interface SourceOverlayProps {
   error: string | null
   height: number
@@ -22,7 +24,7 @@ export function SourceOverlay({ error, height, snapshot, width }: SourceOverlayP
   const rowWidth = overlayWidth - 4
   const sourceRows = snapshot.sources.map((source) => {
     const pathCount = source.discoveredPaths.length
-    const pathSummary = pathCount > 0 ? source.discoveredPaths[0] : 'no paths'
+    const pathSummary = pathCount > 0 ? formatPathLeaf(source.discoveredPaths[0]) : 'no paths'
 
     return truncate(
       `${source.agent.padEnd(8, ' ')} ${source.status.padEnd(12, ' ')} ${source.supportLevel.padEnd(10, ' ')} ${pathCount} path${pathCount === 1 ? '' : 's'} ${pathSummary}`,

@@ -1,5 +1,8 @@
 import type { TokenTotals, UsageSession } from '@agent-ledger/service'
 
+import { formatModelLabel } from '../model-label.ts'
+import { formatPathLeaf } from '../path-truncation.ts'
+
 interface SessionDetailsPaneProps {
   height: number
   session: UsageSession | null
@@ -32,7 +35,31 @@ function truncateKeepEnd(value: string, maxLength: number) {
 }
 
 function truncateRowForContext(value: string, maxLength: number) {
-  const prefixes = ['Project: ', 'Model: ']
+  const projectPrefix = 'Project: '
+
+  if (value.startsWith(projectPrefix)) {
+    if (maxLength <= projectPrefix.length) {
+      return truncate(value, maxLength)
+    }
+
+    const projectLabel = formatPathLeaf(value.slice(projectPrefix.length))
+    const suffix = truncateKeepEnd(projectLabel, maxLength - projectPrefix.length)
+    return `${projectPrefix}${suffix}`
+  }
+
+  const modelPrefix = 'Model: '
+
+  if (value.startsWith(modelPrefix)) {
+    if (maxLength <= modelPrefix.length) {
+      return truncate(value, maxLength)
+    }
+
+    const modelLabel = formatModelLabel(value.slice(modelPrefix.length))
+    const suffix = truncateKeepEnd(modelLabel, maxLength - modelPrefix.length)
+    return `${modelPrefix}${suffix}`
+  }
+
+  const prefixes: string[] = []
 
   for (const prefix of prefixes) {
     if (!value.startsWith(prefix)) {
