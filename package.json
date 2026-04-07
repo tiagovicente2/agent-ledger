@@ -17,7 +17,6 @@
   "scripts": {
     "dev": "bun run --cwd apps/tui dev",
     "snapshot": "bun run --cwd packages/service snapshot",
-    "test": "bun test",
     "typecheck": "tsc -p packages/service/tsconfig.json --noEmit && tsc -p apps/tui/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
     "build:release": "bun run script/build.ts",
     "release:version": "bun run script/version.ts",
