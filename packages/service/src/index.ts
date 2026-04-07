@@ -24,7 +24,7 @@ export type {
   GeminiSourceConfig,
   OpenCodeSourceConfig,
 } from './config'
-export { expandConfig, getDefaultConfig } from './config'
+export { expandConfig, getDefaultConfig, getPricingOverridePaths } from './config'
 export type { DiscoveredSource, DiscoveredSourceMap } from './discovery'
 export { discoverSources, getDiscoveredPaths } from './discovery'
 export type {

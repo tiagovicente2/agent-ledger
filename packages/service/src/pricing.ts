@@ -374,8 +374,13 @@ export async function loadPricingOverrides(path: string): Promise<PricingEntry[]
   }
 }
 
-export async function loadPricingCatalog(overridePath: string): Promise<PricingEntry[]> {
-  return mergePricingCatalog(getBuiltinPricingCatalog(), await loadPricingOverrides(overridePath))
+export async function loadPricingCatalog(
+  overridePaths: string | string[],
+): Promise<PricingEntry[]> {
+  const paths = Array.isArray(overridePaths) ? overridePaths : [overridePaths]
+  const overrides = await Promise.all(paths.map((path) => loadPricingOverrides(path)))
+
+  return mergePricingCatalog(getBuiltinPricingCatalog(), [...overrides].reverse().flat())
 }
 
 export function estimateCost(tokens: TokenTotals, pricing: PricingEntry): CostEstimate {

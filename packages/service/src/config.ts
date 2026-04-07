@@ -13,7 +13,7 @@ export interface GeminiSourceConfig {
 
 export interface OpenCodeSourceConfig {
   enabled: boolean
-  dbPath: string
+  dbPaths: string[]
 }
 
 export interface CodexSourceConfig {
@@ -46,10 +46,12 @@ export interface AgentLedgerConfigInput {
 }
 
 export function getDefaultConfig(home = homedir()): AgentLedgerConfig {
+  const defaults = getPlatformDefaults(home)
+
   return {
     home,
-    pricingOverridePath: join(home, '.config/agent-ledger/pricing.json'),
-    cachePath: join(home, '.local/share/agent-ledger/cache/snapshot.json'),
+    pricingOverridePath: defaults.pricingOverridePath,
+    cachePath: defaults.cachePath,
     sources: {
       claude: {
         enabled: true,
@@ -61,14 +63,91 @@ export function getDefaultConfig(home = homedir()): AgentLedgerConfig {
       },
       opencode: {
         enabled: true,
-        dbPath: join(home, '.local/share/opencode/opencode.db'),
+        dbPaths: defaults.opencodeDbPaths,
       },
       codex: {
         enabled: true,
-        roots: [join(home, '.config/Codex'), join(home, '.cache/Codex')],
+        roots: defaults.codexRoots,
       },
     },
   }
+}
+
+function uniquePaths(paths: string[]): string[] {
+  return [...new Set(paths)]
+}
+
+function getPlatformDefaults(home: string) {
+  const configHome = process.env.XDG_CONFIG_HOME || join(home, '.config')
+  const dataHome = process.env.XDG_DATA_HOME || join(home, '.local/share')
+  const cacheHome = process.env.XDG_CACHE_HOME || join(home, '.cache')
+
+  switch (process.platform) {
+    case 'darwin': {
+      const appSupport = join(home, 'Library/Application Support')
+      const caches = join(home, 'Library/Caches')
+
+      return {
+        pricingOverridePath: join(appSupport, 'agent-ledger/pricing.json'),
+        cachePath: join(caches, 'agent-ledger/snapshot.json'),
+        opencodeDbPaths: [join(appSupport, 'opencode/opencode.db')],
+        codexRoots: uniquePaths([
+          join(home, '.codex'),
+          join(configHome, 'Codex'),
+          join(caches, 'Codex'),
+        ]),
+      }
+    }
+    case 'win32': {
+      const roamingAppData = process.env.APPDATA || join(home, 'AppData/Roaming')
+      const localAppData = process.env.LOCALAPPDATA || join(home, 'AppData/Local')
+
+      return {
+        pricingOverridePath: join(roamingAppData, 'agent-ledger/pricing.json'),
+        cachePath: join(localAppData, 'agent-ledger/cache/snapshot.json'),
+        opencodeDbPaths: uniquePaths([
+          join(localAppData, 'opencode/opencode.db'),
+          join(roamingAppData, 'opencode/opencode.db'),
+        ]),
+        codexRoots: uniquePaths([
+          join(home, '.codex'),
+          join(roamingAppData, 'Codex'),
+          join(localAppData, 'Codex'),
+        ]),
+      }
+    }
+    default:
+      return {
+        pricingOverridePath: join(configHome, 'agent-ledger/pricing.json'),
+        cachePath: join(dataHome, 'agent-ledger/cache/snapshot.json'),
+        opencodeDbPaths: [join(dataHome, 'opencode/opencode.db')],
+        codexRoots: uniquePaths([
+          join(home, '.codex'),
+          join(configHome, 'Codex'),
+          join(cacheHome, 'Codex'),
+        ]),
+      }
+  }
+}
+
+export function getPricingOverridePaths(
+  config: Pick<AgentLedgerConfig, 'home' | 'pricingOverridePath'>,
+) {
+  const paths = [config.pricingOverridePath]
+
+  if (process.platform !== 'darwin') {
+    return paths
+  }
+
+  const currentDefault = getPlatformDefaults(config.home).pricingOverridePath
+
+  if (config.pricingOverridePath !== currentDefault) {
+    return paths
+  }
+
+  const legacyPath = join(config.home, '.config/agent-ledger/pricing.json')
+
+  return uniquePaths([...paths, legacyPath])
 }
 
 function expandClaudeSourceConfig(
@@ -97,7 +176,7 @@ function expandOpenCodeSourceConfig(
 ): OpenCodeSourceConfig {
   return {
     enabled: config?.enabled ?? defaults.enabled,
-    dbPath: config?.dbPath ?? defaults.dbPath,
+    dbPaths: config?.dbPaths ?? defaults.dbPaths,
   }
 }
 

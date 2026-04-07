@@ -6,9 +6,14 @@ import { parseGeminiSession } from './adapters/gemini'
 import { loadOpenCodeMessages, type OpenCodeQueryResultRow } from './adapters/opencode'
 import { buildSummarySnapshot } from './aggregate'
 import { createCachePayload, readCache, shouldReuseCache, writeCache } from './cache-store'
-import { type AgentLedgerConfig, type AgentLedgerConfigInput, expandConfig } from './config'
+import {
+  type AgentLedgerConfig,
+  type AgentLedgerConfigInput,
+  expandConfig,
+  getPricingOverridePaths,
+} from './config'
 import { type DiscoveredSource, discoverSources, getDiscoveredPaths } from './discovery'
-import { fingerprintPath, fingerprintSources } from './fingerprints'
+import { fingerprintPaths, fingerprintSources } from './fingerprints'
 import { normalizeMessages } from './normalize'
 import { loadPricingCatalog } from './pricing'
 import type { AgentName, SourceState, SourceStatus, SupportLevel, UsageMessageInput } from './types'
@@ -188,19 +193,20 @@ function resolveConfig(config?: AgentLedgerConfigInput | AgentLedgerConfig): Age
 
 export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentLedgerConfig) {
   const config = resolveConfig(configInput)
+  const pricingOverridePaths = getPricingOverridePaths(config)
   const discovered = await discoverSources(config)
-  const [fingerprints, pricingOverrideFingerprint, cachedPayload] = await Promise.all([
+  const [fingerprints, pricingOverrideFingerprints, cachedPayload] = await Promise.all([
     fingerprintSources(discovered),
-    fingerprintPath(config.pricingOverridePath),
+    fingerprintPaths(pricingOverridePaths),
     readCache(config.cachePath),
   ])
 
-  if (shouldReuseCache(cachedPayload, fingerprints, pricingOverrideFingerprint)) {
+  if (shouldReuseCache(cachedPayload, fingerprints, pricingOverrideFingerprints)) {
     return cachedPayload.snapshot
   }
 
   const [pricingCatalog, claude, gemini, opencode] = await Promise.all([
-    loadPricingCatalog(config.pricingOverridePath),
+    loadPricingCatalog(pricingOverridePaths),
     loadClaudeMessages(discovered.claude.paths),
     loadGeminiMessages(discovered.gemini.paths),
     discovered.opencode.primaryPath
@@ -240,7 +246,7 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
   try {
     await writeCache(
       config.cachePath,
-      createCachePayload(fingerprints, pricingOverrideFingerprint, snapshot),
+      createCachePayload(fingerprints, pricingOverrideFingerprints, snapshot),
     )
 
     return snapshot

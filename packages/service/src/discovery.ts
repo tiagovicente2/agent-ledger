@@ -36,7 +36,7 @@ async function globPaths(root: string, patterns: string[]): Promise<string[]> {
 }
 
 function existingPaths(paths: string[]): string[] {
-  return sortPaths(paths.filter((path) => existsSync(path)))
+  return [...new Set(paths.filter((path) => existsSync(path)))]
 }
 
 async function discoverCodexPaths(roots: string[]): Promise<string[]> {
@@ -88,11 +88,11 @@ export async function discoverSources(
     : Promise.resolve([])
 
   const opencodePrimaryPath = config.sources.opencode.enabled
-    ? (existingPaths([config.sources.opencode.dbPath])[0] ?? null)
+    ? (existingPaths(config.sources.opencode.dbPaths)[0] ?? null)
     : null
 
   const opencodeCompanionPaths = config.sources.opencode.enabled
-    ? existingPaths([`${config.sources.opencode.dbPath}-wal`])
+    ? existingPaths(config.sources.opencode.dbPaths.map((path) => `${path}-wal`))
     : []
 
   return {

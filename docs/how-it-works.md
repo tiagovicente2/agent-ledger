@@ -18,8 +18,12 @@ Default paths:
 
 - Claude Code: `~/.claude/projects/**/*.jsonl`
 - Gemini: `~/.gemini/tmp/**/chats/session-*.json`
-- OpenCode: `~/.local/share/opencode/opencode.db` and optional `opencode.db-wal`
-- Codex: `~/.config/Codex` and `~/.cache/Codex`
+- OpenCode:
+  Linux: `~/.local/share/opencode/opencode.db`
+  macOS: `~/Library/Application Support/opencode/opencode.db`
+- Codex:
+  Linux: `~/.codex`, `~/.config/Codex`, `~/.cache/Codex`
+  macOS: `~/.codex`, `~/.config/Codex`, `~/Library/Caches/Codex`
 
 Source discovery is best-effort:
 

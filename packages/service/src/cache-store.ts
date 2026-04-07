@@ -5,12 +5,12 @@ import type { SourceFingerprint, SourceFingerprintSnapshot } from './fingerprint
 import { fingerprintsMatch } from './fingerprints'
 import type { SummarySnapshot } from './types'
 
-export const CACHE_PAYLOAD_VERSION = 2
+export const CACHE_PAYLOAD_VERSION = 3
 
 export interface CachePayload {
   version: typeof CACHE_PAYLOAD_VERSION
   fingerprints: SourceFingerprintSnapshot
-  pricingOverrideFingerprint: SourceFingerprint | null
+  pricingOverrideFingerprints: SourceFingerprint[]
   snapshot: SummarySnapshot
 }
 
@@ -49,8 +49,8 @@ function isSourceFingerprint(value: unknown): boolean {
   return typeof value.path === 'string' && isNumber(value.size) && isNumber(value.mtimeMs)
 }
 
-function isNullableSourceFingerprint(value: unknown): value is SourceFingerprint | null {
-  return value === null || isSourceFingerprint(value)
+function isSourceFingerprintList(value: unknown): value is SourceFingerprint[] {
+  return Array.isArray(value) && value.every(isSourceFingerprint)
 }
 
 function isSourceFingerprintSnapshot(value: unknown): value is SourceFingerprintSnapshot {
@@ -152,35 +152,51 @@ export function isCachePayload(value: unknown): value is CachePayload {
   return (
     value.version === CACHE_PAYLOAD_VERSION &&
     isSourceFingerprintSnapshot(value.fingerprints) &&
-    isNullableSourceFingerprint(value.pricingOverrideFingerprint) &&
+    isSourceFingerprintList(value.pricingOverrideFingerprints) &&
     isSummarySnapshot(value.snapshot)
   )
 }
 
 export function createCachePayload(
   fingerprints: SourceFingerprintSnapshot,
-  pricingOverrideFingerprint: SourceFingerprint | null,
+  pricingOverrideFingerprints: SourceFingerprint[],
   snapshot: SummarySnapshot,
 ): CachePayload {
   return {
     version: CACHE_PAYLOAD_VERSION,
     fingerprints,
-    pricingOverrideFingerprint,
+    pricingOverrideFingerprints,
     snapshot,
   }
+}
+
+function sourceFingerprintListsMatch(
+  left: SourceFingerprint[],
+  right: SourceFingerprint[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((fingerprint, index) => {
+      const other = right[index]
+
+      return (
+        fingerprint.path === other?.path &&
+        fingerprint.size === other.size &&
+        fingerprint.mtimeMs === other.mtimeMs
+      )
+    })
+  )
 }
 
 export function shouldReuseCache(
   payload: CachePayload | null,
   fingerprints: SourceFingerprintSnapshot,
-  pricingOverrideFingerprint: SourceFingerprint | null,
+  pricingOverrideFingerprints: SourceFingerprint[],
 ): payload is CachePayload {
   return (
     payload !== null &&
     fingerprintsMatch(payload.fingerprints, fingerprints) &&
-    payload.pricingOverrideFingerprint?.path === pricingOverrideFingerprint?.path &&
-    payload.pricingOverrideFingerprint?.size === pricingOverrideFingerprint?.size &&
-    payload.pricingOverrideFingerprint?.mtimeMs === pricingOverrideFingerprint?.mtimeMs
+    sourceFingerprintListsMatch(payload.pricingOverrideFingerprints, pricingOverrideFingerprints)
   )
 }
 
