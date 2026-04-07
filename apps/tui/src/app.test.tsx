@@ -206,37 +206,33 @@ afterEach(async () => {
 
 describe('DashboardApp', () => {
   test('matches a wide-layout snapshot', async () => {
-    await act(async () => {
-      testSetup = await testRender(
-        <DashboardApp
-          dashboardState={createStaticDashboardState()}
-          onQuit={() => {}}
-          terminalHeight={24}
-          terminalWidth={100}
-        />,
-        { width: 100, height: 24 },
-      )
+    testSetup = await testRender(
+      <DashboardApp
+        dashboardState={createStaticDashboardState()}
+        onQuit={() => {}}
+        terminalHeight={24}
+        terminalWidth={100}
+      />,
+      { width: 100, height: 24 },
+    )
 
-      await testSetup.renderOnce()
-    })
+    await testSetup.renderOnce()
 
     expect(getTestSetup().captureCharFrame()).toMatchSnapshot()
   })
 
   test('matches a compact stacked snapshot on small terminals', async () => {
-    await act(async () => {
-      testSetup = await testRender(
-        <DashboardApp
-          dashboardState={createStaticDashboardState()}
-          onQuit={() => {}}
-          terminalHeight={14}
-          terminalWidth={60}
-        />,
-        { width: 60, height: 14 },
-      )
+    testSetup = await testRender(
+      <DashboardApp
+        dashboardState={createStaticDashboardState()}
+        onQuit={() => {}}
+        terminalHeight={14}
+        terminalWidth={60}
+      />,
+      { width: 60, height: 14 },
+    )
 
-      await testSetup.renderOnce()
-    })
+    await testSetup.renderOnce()
 
     expect(getTestSetup().captureCharFrame()).toMatchSnapshot()
   })
@@ -278,41 +274,95 @@ describe('DashboardApp', () => {
     await getTestSetup().renderOnce()
     const filteredFrame = getTestSetup().captureCharFrame()
     expect(filteredFrame).toContain('Sessions | Agent: claude')
-    expect(filteredFrame).toContain('[2:claude]')
+    expect(filteredFrame).toContain('tab claude')
+    expect(filteredFrame).toContain('warn 1')
+    expect(filteredFrame).toContain('w details')
+  })
+
+  test('toggles keyboard help overlay', async () => {
+    testSetup = await testRender(<DashboardHarness width={100} height={24} />, {
+      width: 100,
+      height: 24,
+    })
+
+    await testSetup.renderOnce()
+
+    await act(async () => {
+      emitKey({ name: '?', sequence: '?' })
+      await Promise.resolve()
+    })
+    await getTestSetup().renderOnce()
+
+    const helpFrame = getTestSetup().captureCharFrame()
+    expect(helpFrame).toContain('Keyboard Help')
+    expect(helpFrame).toContain('Press Esc, q, or ? to close.')
+
+    await act(async () => {
+      emitKey({ name: 'escape', sequence: '\u001B' })
+      await Promise.resolve()
+    })
+    await getTestSetup().renderOnce()
+
+    expect(getTestSetup().captureCharFrame()).toContain('? help')
+  })
+
+  test('toggles source health overlay', async () => {
+    testSetup = await testRender(<DashboardHarness width={100} height={24} />, {
+      width: 100,
+      height: 24,
+    })
+
+    await testSetup.renderOnce()
+
+    await act(async () => {
+      emitKey({ name: 'w', sequence: 'w' })
+      await Promise.resolve()
+    })
+    await getTestSetup().renderOnce()
+
+    const sourceFrame = getTestSetup().captureCharFrame()
+    expect(sourceFrame).toContain('Source Health')
+    expect(sourceFrame).toContain('pricing table')
+    expect(sourceFrame).toContain('archival model')
+    expect(sourceFrame).toContain('No source state loaded yet.')
+
+    await act(async () => {
+      emitKey({ name: 'w', sequence: 'w' })
+      await Promise.resolve()
+    })
+    await getTestSetup().renderOnce()
+
+    expect(getTestSetup().captureCharFrame()).toContain('warn 1')
   })
 })
 
 describe('Pane snapshots', () => {
   test('matches a compact SessionListPane snapshot', async () => {
-    await act(async () => {
-      testSetup = await testRender(
-        <SessionListPane
-          activeFilter="all"
-          height={8}
-          selectedSessionIndex={0}
-          sessions={BASE_SESSIONS}
-          sortDirection="desc"
-          sortKey="recent"
-          width={48}
-        />,
-        { width: 48, height: 8 },
-      )
+    testSetup = await testRender(
+      <SessionListPane
+        activeFilter="all"
+        height={8}
+        selectedSessionIndex={0}
+        sessions={BASE_SESSIONS}
+        sortDirection="desc"
+        sortKey="recent"
+        width={48}
+      />,
+      { width: 48, height: 8 },
+    )
 
-      await testSetup.renderOnce()
-    })
+    await testSetup.renderOnce()
 
     expect(getTestSetup().captureCharFrame()).toMatchSnapshot()
   })
 
   test('matches a narrow SessionDetailsPane snapshot', async () => {
-    await act(async () => {
-      testSetup = await testRender(
-        <SessionDetailsPane height={12} session={DETAIL_SESSION} width={52} />,
-        { width: 52, height: 12 },
-      )
+    testSetup = await testRender(
+      <SessionDetailsPane height={12} session={DETAIL_SESSION} width={52} />,
+      { width: 52, height: 12 },
+    )
 
-      await testSetup.renderOnce()
-    })
+    await testSetup.renderOnce()
 
     expect(getTestSetup().captureCharFrame()).toMatchSnapshot()
   })

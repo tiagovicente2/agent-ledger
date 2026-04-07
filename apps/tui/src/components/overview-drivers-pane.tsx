@@ -1,5 +1,8 @@
 import type { AgentName, SummaryTotals, UsageSession } from '@agent-ledger/service'
 
+import { formatModelLabel } from '../model-label.ts'
+import { truncatePathSuffix } from '../path-truncation.ts'
+
 interface OverviewDriversPaneProps {
   height: number
   sessions: UsageSession[]
@@ -99,6 +102,7 @@ function buildCardRows(
     maxLabelWidth: number
     compactValue?: (value: number) => string
     preferEndLabel?: boolean
+    truncateLabel?: (value: string, maxLength: number) => string
   },
 ) {
   if (rows.length === 0) {
@@ -130,10 +134,9 @@ function buildCardRows(
   const barWidth = options.showBar ? Math.max(2, options.rowWidth - labelWidth - valueWidth - 2) : 0
 
   return rows.map((row, index) => {
-    const label = (options.preferEndLabel ? truncateKeepEnd : truncate)(
-      row.label,
-      labelWidth,
-    ).padEnd(labelWidth, ' ')
+    const truncateLabel =
+      options.truncateLabel ?? (options.preferEndLabel ? truncateKeepEnd : truncate)
+    const label = truncateLabel(row.label, labelWidth).padEnd(labelWidth, ' ')
     const value = valueRows[index].padStart(valueWidth, ' ')
 
     if (!options.showBar) {
@@ -283,7 +286,7 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
   const rightColumnWidth = wideLayout ? contentWidth - columnGap - leftColumnWidth : contentWidth
 
   const models = [...modelTokenMap.entries()]
-    .map(([label, value]) => ({ label, value }))
+    .map(([label, value]) => ({ label: formatModelLabel(label), value }))
     .sort((left, right) => right.value - left.value)
 
   const projects = [...projectTokenMap.entries()]
@@ -320,7 +323,7 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
       showBar: false,
       maxLabelWidth: clamp(Math.floor(leftRowWidth * 0.62), 12, 32),
       compactValue: formatCompactTokens,
-      preferEndLabel: true,
+      truncateLabel: truncatePathSuffix,
     })
     const agentTokenRows = buildCardRows(agentTokens.slice(0, 10), formatTokens, {
       rowWidth: rightRowWidth,

@@ -1,12 +1,15 @@
 import type { SummarySnapshot } from '@agent-ledger/service'
 import { useKeyboard, useTerminalDimensions } from '@opentui/react'
-import { Fragment, type ReactNode, useEffect, useState } from 'react'
+import { Fragment, type ReactNode, useEffect } from 'react'
 
-import { HEADER_HEIGHT, Header } from './components/header.tsx'
+import { HelpOverlay } from './components/help-overlay.tsx'
 import { OverviewDriversPane } from './components/overview-drivers-pane.tsx'
 import { OverviewTrendPane } from './components/overview-trend-pane.tsx'
 import { SessionDetailsPane } from './components/session-details-pane.tsx'
 import { SessionListPane } from './components/session-list-pane.tsx'
+import { SourceOverlay } from './components/source-overlay.tsx'
+import { StatusBar, STATUS_BAR_HEIGHT } from './components/status-bar.tsx'
+import { useDashboardUi } from './hooks/use-dashboard-ui.ts'
 import {
   type ActiveAgent,
   AGENT_TABS,
@@ -119,16 +122,26 @@ export function DashboardApp({
     trend,
   } = dashboardState
   const resolvedSnapshot = snapshot ?? createEmptySnapshot()
-  const [selectedSessionIndex, setSelectedSessionIndex] = useState(0)
+  const {
+    closeOverlay,
+    moveSelection,
+    overlay,
+    resetSelection,
+    selectedSessionIndex,
+    syncSelection,
+    toggleOverlay,
+  } = useDashboardUi()
   const width = Math.max(terminalWidth, 1)
-  const height = Math.max(terminalHeight, HEADER_HEIGHT + 1)
-  const bodyHeight = Math.max(height - HEADER_HEIGHT, 1)
+  const height = Math.max(terminalHeight, STATUS_BAR_HEIGHT + 1)
+  const bodyHeight = Math.max(height - STATUS_BAR_HEIGHT, 1)
   const selectedSession = filteredSessions[selectedSessionIndex] ?? null
   const useGridLayout = width >= MIN_GRID_WIDTH && bodyHeight >= MIN_GRID_BODY_HEIGHT
+  const isHelpOpen = overlay === 'help'
+  const isSourceOverlayOpen = overlay === 'sources'
 
   function setTab(tab: ActiveAgent) {
     setActiveAgent(tab)
-    setSelectedSessionIndex(0)
+    resetSelection()
   }
 
   function cycleTab(direction: -1 | 1) {
@@ -142,35 +155,61 @@ export function DashboardApp({
     const currentIndex = TIME_WINDOW_OPTIONS.indexOf(timeWindow)
     const nextIndex = (Math.max(0, currentIndex) + 1) % TIME_WINDOW_OPTIONS.length
     setTimeWindow(TIME_WINDOW_OPTIONS[nextIndex])
-    setSelectedSessionIndex(0)
+    resetSelection()
   }
 
   function cycleSortKey() {
     const currentIndex = SORT_KEY_OPTIONS.indexOf(sortKey)
     const nextIndex = (Math.max(0, currentIndex) + 1) % SORT_KEY_OPTIONS.length
     setSortKey(SORT_KEY_OPTIONS[nextIndex])
-    setSelectedSessionIndex(0)
+    resetSelection()
   }
 
   function cycleSortDirection() {
     const currentIndex = SORT_DIRECTION_OPTIONS.indexOf(sortDirection)
     const nextIndex = (Math.max(0, currentIndex) + 1) % SORT_DIRECTION_OPTIONS.length
     setSortDirection(SORT_DIRECTION_OPTIONS[nextIndex])
-    setSelectedSessionIndex(0)
+    resetSelection()
   }
 
   useEffect(() => {
-    setSelectedSessionIndex((currentIndex) => {
-      const nextIndex =
-        filteredSessions.length === 0 ? 0 : Math.min(currentIndex, filteredSessions.length - 1)
-
-      return nextIndex === currentIndex ? currentIndex : nextIndex
-    })
-  }, [filteredSessions])
+    syncSelection(filteredSessions.length)
+  }, [filteredSessions.length, syncSelection])
 
   useKeyboard((event) => {
     if (event.ctrl && event.name === 'c') {
       onQuit()
+      return
+    }
+
+    const helpToggleRequested = event.sequence === '?'
+    const sourceOverlayRequested = event.name === 'w'
+
+    if (overlay !== 'none') {
+      if (event.name === 'escape' || event.name === 'q') {
+        closeOverlay()
+        return
+      }
+
+      if (helpToggleRequested) {
+        toggleOverlay('help')
+        return
+      }
+
+      if (sourceOverlayRequested) {
+        toggleOverlay('sources')
+      }
+
+      return
+    }
+
+    if (helpToggleRequested) {
+      toggleOverlay('help')
+      return
+    }
+
+    if (sourceOverlayRequested) {
+      toggleOverlay('sources')
       return
     }
 
@@ -222,18 +261,36 @@ export function DashboardApp({
     }
 
     if (event.name === 'down' || event.name === 'j') {
-      setSelectedSessionIndex((currentIndex) =>
-        Math.min(currentIndex + 1, Math.max(filteredSessions.length - 1, 0)),
-      )
+      moveSelection(1, filteredSessions.length)
       return
     }
 
     if (event.name === 'up' || event.name === 'k') {
-      setSelectedSessionIndex((currentIndex) => Math.max(currentIndex - 1, 0))
+      moveSelection(-1, filteredSessions.length)
     }
   })
 
   const paneWidth = Math.max(1, width)
+  const helpOverlay = isHelpOpen ? <HelpOverlay height={bodyHeight} width={width} /> : null
+  const sourceOverlay = isSourceOverlayOpen ? (
+    <SourceOverlay error={error} height={bodyHeight} snapshot={resolvedSnapshot} width={width} />
+  ) : null
+  const statusBar = (
+    <StatusBar
+      activeTab={activeAgent}
+      error={error}
+      generatedAt={snapshot?.generatedAt ?? null}
+      isRefreshing={isRefreshing}
+      selectedSessionCount={filteredSessions.length}
+      selectedSessionIndex={selectedSessionIndex}
+      sortDirection={sortDirection}
+      sortKey={sortKey}
+      tabs={AGENT_TABS}
+      timeWindow={timeWindow}
+      warningCount={resolvedSnapshot.warnings.length}
+      width={width}
+    />
+  )
 
   const compactPanes: PaneDef[] = [
     {
@@ -283,21 +340,10 @@ export function DashboardApp({
         style={{
           flexDirection: 'column',
           height,
+          position: 'relative',
           width,
         }}
       >
-        <Header
-          activeTab={activeAgent}
-          error={error}
-          isRefreshing={isRefreshing}
-          snapshot={snapshot}
-          sortDirection={sortDirection}
-          sortKey={sortKey}
-          tabs={AGENT_TABS}
-          timeWindow={timeWindow}
-          warningCount={resolvedSnapshot.warnings.length}
-          width={width}
-        />
         <box style={{ flexDirection: 'column', height: bodyHeight, width }}>
           {compactPaneHeights.map((paneHeight, index) => (
             <Fragment key={compactPanes[index].key}>
@@ -305,6 +351,9 @@ export function DashboardApp({
             </Fragment>
           ))}
         </box>
+        {statusBar}
+        {helpOverlay}
+        {sourceOverlay}
       </box>
     )
   }
@@ -319,21 +368,10 @@ export function DashboardApp({
       style={{
         flexDirection: 'column',
         height,
+        position: 'relative',
         width,
       }}
     >
-      <Header
-        activeTab={activeAgent}
-        error={error}
-        isRefreshing={isRefreshing}
-        snapshot={snapshot}
-        sortDirection={sortDirection}
-        sortKey={sortKey}
-        tabs={AGENT_TABS}
-        timeWindow={timeWindow}
-        warningCount={resolvedSnapshot.warnings.length}
-        width={width}
-      />
       <box style={{ flexDirection: 'row', height: topPaneHeight }}>
         <OverviewTrendPane height={topPaneHeight} points={trend} width={leftPaneWidth} />
         <OverviewDriversPane
@@ -359,6 +397,9 @@ export function DashboardApp({
           width={rightPaneWidth}
         />
       </box>
+      {statusBar}
+      {helpOverlay}
+      {sourceOverlay}
     </box>
   )
 }

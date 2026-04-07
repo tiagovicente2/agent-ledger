@@ -6,24 +6,17 @@ Agent Ledger is a Bun monorepo that reads local coding-agent usage data and show
 
 ```sh
 curl -fsSL https://al.arpgg.io/install | bash
-```
-
-## Usage
-
-```sh
 agent-ledger
 ```
 
 ## Local Development
-
-From the project root:
 
 ```sh
 bun install
 bun run dev
 ```
 
-## TUI Navigation
+## Keybindings
 
 - `1..5` switch tabs
 - `[` / `]` cycle tabs
@@ -32,6 +25,8 @@ bun run dev
 - `a` toggle sort order
 - `j` / `k` or arrows move session selection
 - `r` refresh
+- `w` open source health and warnings
+- `?` open keyboard help
 - `q` quit
 
 ## Requirements

@@ -1,5 +1,7 @@
 import type { UsageSession } from '@agent-ledger/service'
 
+import { truncatePathSuffix } from '../path-truncation.ts'
+
 interface SessionListPaneProps {
   activeFilter: string
   height: number
@@ -40,18 +42,6 @@ function truncate(value: string, maxLength: number) {
   return `${value.slice(0, Math.max(0, maxLength - 3))}...`
 }
 
-function truncateKeepEnd(value: string, maxLength: number) {
-  if (value.length <= maxLength) {
-    return value
-  }
-
-  if (maxLength <= 3) {
-    return value.slice(Math.max(0, value.length - maxLength))
-  }
-
-  return `...${value.slice(Math.max(0, value.length - (maxLength - 3)))}`
-}
-
 function fitLine(value: string, width: number) {
   return truncate(value, width).padEnd(width, ' ')
 }
@@ -70,8 +60,8 @@ function formatTokens(value: number, columnWidth: number) {
   }).format(integerValue)
 }
 
-function pad(value: string, width: number, preferEnd = false) {
-  const formatted = preferEnd ? truncateKeepEnd(value, width) : truncate(value, width)
+function pad(value: string, width: number, mode: 'start' | 'end-path' = 'start') {
+  const formatted = mode === 'end-path' ? truncatePathSuffix(value, width) : truncate(value, width)
   return formatted.padEnd(width, ' ')
 }
 
@@ -157,7 +147,7 @@ export function SessionListPane({
             const compactRow =
               `${isSelected ? '>' : ' '} ` +
               `${pad(formatAgent(session.agent), agentWidth)} ` +
-              `${pad(session.projectPath ?? 'unknown', compactProjectWidth, true)} ` +
+              `${pad(session.projectPath ?? 'unknown', compactProjectWidth, 'end-path')} ` +
               `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
               `${pad(formatUsd(session.estimatedCostUsd), costWidth)}`
 
@@ -167,7 +157,7 @@ export function SessionListPane({
           const fullRow =
             `${isSelected ? '>' : ' '} ` +
             `${pad(formatAgent(session.agent), agentWidth)} ` +
-            `${pad(session.projectPath ?? 'unknown', fullProjectWidth, true)} ` +
+            `${pad(session.projectPath ?? 'unknown', fullProjectWidth, 'end-path')} ` +
             `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
             `${pad(formatUsd(session.estimatedCostUsd), costWidth)} ` +
             `${pad(String(session.messageCount), messagesWidth)} ` +
