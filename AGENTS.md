@@ -15,7 +15,7 @@
 - There is no maintained test suite in this repo anymore. Do not add or rely on `bun test` unless the user explicitly asks for tests again.
 
 - Release flow is GitHub Actions only:
-  - `.github/workflows/release-tag.yml` creates the release commit and pushes a `v*` tag
+  - `.github/workflows/release-tag.yml` creates the release commit, pushes a `v*` tag, and dispatches `publish.yml`
   - `.github/workflows/publish.yml` is tag-driven; it builds and publishes on `v*` pushes or manual tag re-publish
   - the publish workflow validates with `bun run typecheck` only
   - `script/build.ts` must keep `bun install --os="*" --cpu="*"` or cross-arch OpenTUI builds break

@@ -18,6 +18,7 @@ on:
         type: string
 
 permissions:
+  actions: write
   contents: write
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.version || inputs.bump }}
@@ -50,3 +51,8 @@ jobs:
           AGENT_LEDGER_BUMP: ${{ inputs.bump }}
           AGENT_LEDGER_VERSION: ${{ inputs.version }}
         run: bun run release:version
+
+      - name: Trigger publish workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publish.yml -f tag=${{ steps.version.outputs.tag }}
