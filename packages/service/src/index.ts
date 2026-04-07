@@ -1,5 +1,5 @@
 export { parseClaudeSession } from './adapters/claude'
-export { getCodexStatus } from './adapters/codex'
+export { parseCodexSession } from './adapters/codex'
 export { parseGeminiSession } from './adapters/gemini'
 export type {
   OpenCodeQueryable,

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
 import { parseClaudeSession } from './adapters/claude'
-import { getCodexStatus } from './adapters/codex'
+import { parseCodexSession } from './adapters/codex'
 import { parseGeminiSession } from './adapters/gemini'
 import { loadOpenCodeMessages, type OpenCodeQueryResultRow } from './adapters/opencode'
 import { buildSummarySnapshot } from './aggregate'
@@ -172,11 +172,44 @@ async function loadOpenCodePrimary(path: string): Promise<LoadedAgentData> {
   }
 }
 
-function buildCodexSourceState(paths: string[]): SourceState {
-  return getCodexStatus(paths)
+async function loadCodexMessages(paths: string[]): Promise<LoadedAgentData> {
+  const warnings: string[] = []
+  const messages: UsageMessageInput[] = []
+
+  await Promise.all(
+    paths.map(async (path) => {
+      const normalizedPath = path.toLowerCase()
+
+      if (!normalizedPath.endsWith('.jsonl')) {
+        const isSqliteHistory =
+          normalizedPath.endsWith('.db') ||
+          normalizedPath.endsWith('.sqlite') ||
+          normalizedPath.endsWith('.sqlite3')
+
+        warnings.push(
+          isSqliteHistory
+            ? `Skipped Codex source ${path}: SQLite Codex history is discovered but not supported yet`
+            : `Skipped Codex source ${path}: unsupported file type (expected .jsonl)`,
+        )
+        return
+      }
+
+      try {
+        messages.push(...parseCodexSession(await readFile(path, 'utf8'), path))
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        warnings.push(`Failed to read Codex source ${path}: ${detail}`)
+      }
+    }),
+  )
+
+  return {
+    messages,
+    warnings,
+  }
 }
 
-function getSupportLevel(agent: Exclude<AgentName, 'codex'>): SupportLevel {
+function getSupportLevel(agent: AgentName): SupportLevel {
   switch (agent) {
     case 'claude':
       return 'exact'
@@ -184,6 +217,8 @@ function getSupportLevel(agent: Exclude<AgentName, 'codex'>): SupportLevel {
       return 'heuristic'
     case 'opencode':
       return 'exact'
+    case 'codex':
+      return 'heuristic'
   }
 }
 
@@ -205,13 +240,14 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
     return cachedPayload.snapshot
   }
 
-  const [pricingCatalog, claude, gemini, opencode] = await Promise.all([
+  const [pricingCatalog, claude, gemini, opencode, codex] = await Promise.all([
     loadPricingCatalog(pricingOverridePaths),
     loadClaudeMessages(discovered.claude.paths),
     loadGeminiMessages(discovered.gemini.paths),
     discovered.opencode.primaryPath
       ? loadOpenCodePrimary(discovered.opencode.primaryPath)
       : Promise.resolve({ messages: [], warnings: [] }),
+    loadCodexMessages(discovered.codex.paths),
   ])
   const sourceStates: SourceState[] = [
     createSourceState(
@@ -235,10 +271,16 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
       opencode.warnings,
       opencode.messages.length,
     ),
-    buildCodexSourceState(discovered.codex.paths),
+    createSourceState(
+      'codex',
+      discovered.codex,
+      getSupportLevel('codex'),
+      codex.warnings,
+      codex.messages.length,
+    ),
   ]
   const messages = normalizeMessages(
-    [...claude.messages, ...gemini.messages, ...opencode.messages],
+    [...claude.messages, ...gemini.messages, ...opencode.messages, ...codex.messages],
     pricingCatalog,
   )
   const snapshot = buildSummarySnapshot(messages, sourceStates)
