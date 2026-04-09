@@ -52,6 +52,10 @@ function inferSessionId(message: UsageMessage): string | null {
     return 'Gemini session id was missing, so the session was derived from the source filename'
   }
 
+  if (message.agent === 'pi' && message.sessionId === basename(message.rawRef, '.jsonl')) {
+    return 'Pi session id was missing, so the session was derived from the source filename'
+  }
+
   return null
 }
 

@@ -20,6 +20,17 @@ function stripVariantSuffix(model: string): string {
   return suffixIndex >= 0 ? normalizedModel.slice(0, suffixIndex) : normalizedModel
 }
 
+function stripKnownSuffixes(model: string): string[] {
+  const normalizedModel = normalizeModel(model)
+  const candidates = new Set<string>([normalizedModel])
+
+  if (normalizedModel.endsWith('-thinking')) {
+    candidates.add(normalizedModel.slice(0, -'-thinking'.length))
+  }
+
+  return [...candidates].filter(Boolean)
+}
+
 function inferProvider(agent: AgentName, model: string): string | null {
   const normalizedModel = normalizeModel(model)
   const routedModel = stripRoutePrefix(model)
@@ -65,11 +76,12 @@ function getPricingCandidates(model: string): string[] {
   const routedModel = stripRoutePrefix(normalizedModel)
   const routeAndVariantStrippedModel = stripVariantSuffix(routedModel)
 
-  candidates.add(routedModel)
-  candidates.add(routeAndVariantStrippedModel)
-  candidates.add(normalizedModel.replaceAll('.', '-'))
-  candidates.add(routedModel.replaceAll('.', '-'))
-  candidates.add(routeAndVariantStrippedModel.replaceAll('.', '-'))
+  for (const candidate of [normalizedModel, routedModel, routeAndVariantStrippedModel]) {
+    for (const strippedCandidate of stripKnownSuffixes(candidate)) {
+      candidates.add(strippedCandidate)
+      candidates.add(strippedCandidate.replaceAll('.', '-'))
+    }
+  }
 
   if (normalizedModel.endsWith('-latest')) {
     candidates.add(normalizedModel.slice(0, -'-latest'.length))

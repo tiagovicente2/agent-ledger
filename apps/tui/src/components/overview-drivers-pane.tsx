@@ -22,7 +22,7 @@ interface CardDef {
 }
 
 function formatAgent(agent: AgentName) {
-  return agent[0].toUpperCase() + agent.slice(1)
+  return agent === 'pi' ? 'pi' : agent[0].toUpperCase() + agent.slice(1)
 }
 
 function truncate(value: string, maxLength: number) {

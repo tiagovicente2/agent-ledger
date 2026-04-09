@@ -22,7 +22,7 @@ bun run dev
 
 ## Keybindings
 
-- `1..5` switch tabs
+- `1..6` switch tabs
 - `[` / `]` cycle tabs
 - `t` cycle time window
 - `s` cycle sort key
@@ -38,6 +38,8 @@ bun run dev
 - Bun
 - Local agent data (unless you want to run against empty sources)
 - SQLite (for OpenCode data)
+
+Default sources include Claude Code, Gemini, OpenCode, Codex, and pi session files.
 
 ## Main Commands
 

@@ -13,7 +13,7 @@ interface SessionListPaneProps {
 }
 
 function formatAgent(agent: UsageSession['agent']) {
-  return agent[0].toUpperCase() + agent.slice(1)
+  return agent === 'pi' ? 'pi' : agent[0].toUpperCase() + agent.slice(1)
 }
 
 function formatTimestamp(value: string) {

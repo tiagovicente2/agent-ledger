@@ -95,6 +95,10 @@ export async function discoverSources(
     ? existingPaths(config.sources.opencode.dbPaths.map((path) => `${path}-wal`))
     : []
 
+  const piPaths = config.sources.pi.enabled
+    ? globPaths(config.sources.pi.root, ['**/*.jsonl'])
+    : Promise.resolve([])
+
   return {
     claude: {
       paths: await claudePaths,
@@ -109,6 +113,9 @@ export async function discoverSources(
     },
     codex: {
       paths: await codexPaths,
+    },
+    pi: {
+      paths: await piPaths,
     },
   }
 }

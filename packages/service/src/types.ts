@@ -1,4 +1,4 @@
-export type AgentName = 'claude' | 'gemini' | 'opencode' | 'codex'
+export type AgentName = 'claude' | 'gemini' | 'opencode' | 'codex' | 'pi'
 
 export type SourceStatus = 'ready' | 'partial' | 'not_detected' | 'error'
 

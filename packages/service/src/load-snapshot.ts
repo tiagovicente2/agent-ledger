@@ -4,6 +4,7 @@ import { parseClaudeSession } from './adapters/claude'
 import { parseCodexSession } from './adapters/codex'
 import { parseGeminiSession } from './adapters/gemini'
 import { loadOpenCodeMessages, type OpenCodeQueryResultRow } from './adapters/opencode'
+import { parsePiSession } from './adapters/pi'
 import { buildSummarySnapshot } from './aggregate'
 import { createCachePayload, readCache, shouldReuseCache, writeCache } from './cache-store'
 import {
@@ -209,6 +210,27 @@ async function loadCodexMessages(paths: string[]): Promise<LoadedAgentData> {
   }
 }
 
+async function loadPiMessages(paths: string[]): Promise<LoadedAgentData> {
+  const warnings: string[] = []
+  const messages: UsageMessageInput[] = []
+
+  await Promise.all(
+    paths.map(async (path) => {
+      try {
+        messages.push(...parsePiSession(await readFile(path, 'utf8'), path))
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        warnings.push(`Failed to read Pi source ${path}: ${detail}`)
+      }
+    }),
+  )
+
+  return {
+    messages,
+    warnings,
+  }
+}
+
 function getSupportLevel(agent: AgentName): SupportLevel {
   switch (agent) {
     case 'claude':
@@ -219,6 +241,8 @@ function getSupportLevel(agent: AgentName): SupportLevel {
       return 'exact'
     case 'codex':
       return 'heuristic'
+    case 'pi':
+      return 'exact'
   }
 }
 
@@ -240,7 +264,7 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
     return cachedPayload.snapshot
   }
 
-  const [pricingCatalog, claude, gemini, opencode, codex] = await Promise.all([
+  const [pricingCatalog, claude, gemini, opencode, codex, pi] = await Promise.all([
     loadPricingCatalog(pricingOverridePaths),
     loadClaudeMessages(discovered.claude.paths),
     loadGeminiMessages(discovered.gemini.paths),
@@ -248,6 +272,7 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
       ? loadOpenCodePrimary(discovered.opencode.primaryPath)
       : Promise.resolve({ messages: [], warnings: [] }),
     loadCodexMessages(discovered.codex.paths),
+    loadPiMessages(discovered.pi.paths),
   ])
   const sourceStates: SourceState[] = [
     createSourceState(
@@ -278,9 +303,10 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
       codex.warnings,
       codex.messages.length,
     ),
+    createSourceState('pi', discovered.pi, getSupportLevel('pi'), pi.warnings, pi.messages.length),
   ]
   const messages = normalizeMessages(
-    [...claude.messages, ...gemini.messages, ...opencode.messages, ...codex.messages],
+    [...claude.messages, ...gemini.messages, ...opencode.messages, ...codex.messages, ...pi.messages],
     pricingCatalog,
   )
   const snapshot = buildSummarySnapshot(messages, sourceStates)

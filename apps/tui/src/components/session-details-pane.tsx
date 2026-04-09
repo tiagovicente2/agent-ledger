@@ -9,6 +9,10 @@ interface SessionDetailsPaneProps {
   width: number
 }
 
+function formatAgent(agent: UsageSession['agent']) {
+  return agent === 'pi' ? 'pi' : agent[0].toUpperCase() + agent.slice(1)
+}
+
 interface CardDef {
   key: string
   title: string
@@ -302,7 +306,7 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
       >
         <text>
           {truncate(
-            session ? `Agent: ${session.agent}` : 'No session selected',
+            session ? `Agent: ${formatAgent(session.agent)}` : 'No session selected',
             Math.max(8, contentWidth),
           )}
         </text>
@@ -330,7 +334,7 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
   const wideLayout = contentWidth >= 72 && cardsHeight >= 7
 
   const summaryRows = [
-    `Agent: ${session.agent}`,
+    `Agent: ${formatAgent(session.agent)}`,
     `Tokens: ${session.tokenTotals.total.toLocaleString()}   Cost: ${formatUsd(session.estimatedCostUsd)}`,
     `Messages: ${session.messageCount}`,
     `Started: ${formatTimestamp(session.startedAt)}`,

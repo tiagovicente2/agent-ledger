@@ -24,6 +24,7 @@ Default paths:
 - Codex:
   Linux: `~/.codex`, `~/.config/Codex`, `~/.cache/Codex`
   macOS: `~/.codex`, `~/.config/Codex`, `~/Library/Caches/Codex`
+- pi: `~/.pi/agent/sessions/**/*.jsonl`
 
 Source discovery is best-effort:
 

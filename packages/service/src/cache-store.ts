@@ -5,7 +5,7 @@ import type { SourceFingerprint, SourceFingerprintSnapshot } from './fingerprint
 import { fingerprintsMatch } from './fingerprints'
 import type { SummarySnapshot } from './types'
 
-export const CACHE_PAYLOAD_VERSION = 4
+export const CACHE_PAYLOAD_VERSION = 5
 
 export interface CachePayload {
   version: typeof CACHE_PAYLOAD_VERSION
@@ -66,7 +66,9 @@ function isSourceFingerprintSnapshot(value: unknown): value is SourceFingerprint
     Array.isArray(value.sources.opencode) &&
     value.sources.opencode.every(isSourceFingerprint) &&
     Array.isArray(value.sources.codex) &&
-    value.sources.codex.every(isSourceFingerprint)
+    value.sources.codex.every(isSourceFingerprint) &&
+    Array.isArray(value.sources.pi) &&
+    value.sources.pi.every(isSourceFingerprint)
   )
 }
 
@@ -79,7 +81,8 @@ function isSourceState(value: unknown): boolean {
     (value.agent === 'claude' ||
       value.agent === 'gemini' ||
       value.agent === 'opencode' ||
-      value.agent === 'codex') &&
+      value.agent === 'codex' ||
+      value.agent === 'pi') &&
     (value.status === 'ready' ||
       value.status === 'partial' ||
       value.status === 'not_detected' ||
@@ -102,7 +105,8 @@ function isUsageSession(value: unknown): boolean {
     (value.agent === 'claude' ||
       value.agent === 'gemini' ||
       value.agent === 'opencode' ||
-      value.agent === 'codex') &&
+      value.agent === 'codex' ||
+      value.agent === 'pi') &&
     (typeof value.nativeSessionId === 'string' || value.nativeSessionId === null) &&
     (typeof value.projectPath === 'string' || value.projectPath === null) &&
     typeof value.startedAt === 'string' &&

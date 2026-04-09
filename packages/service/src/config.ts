@@ -21,6 +21,11 @@ export interface CodexSourceConfig {
   roots: string[]
 }
 
+export interface PiSourceConfig {
+  enabled: boolean
+  root: string
+}
+
 export interface AgentLedgerConfig {
   home: string
   pricingOverridePath: string
@@ -30,6 +35,7 @@ export interface AgentLedgerConfig {
     gemini: GeminiSourceConfig
     opencode: OpenCodeSourceConfig
     codex: CodexSourceConfig
+    pi: PiSourceConfig
   }
 }
 
@@ -42,6 +48,7 @@ export interface AgentLedgerConfigInput {
     gemini?: Partial<GeminiSourceConfig>
     opencode?: Partial<OpenCodeSourceConfig>
     codex?: Partial<CodexSourceConfig>
+    pi?: Partial<PiSourceConfig>
   }
 }
 
@@ -68,6 +75,10 @@ export function getDefaultConfig(home = homedir()): AgentLedgerConfig {
       codex: {
         enabled: true,
         roots: defaults.codexRoots,
+      },
+      pi: {
+        enabled: true,
+        root: join(home, '.pi/agent/sessions'),
       },
     },
   }
@@ -190,6 +201,16 @@ function expandCodexSourceConfig(
   }
 }
 
+function expandPiSourceConfig(
+  defaults: PiSourceConfig,
+  config: Partial<PiSourceConfig> | undefined,
+): PiSourceConfig {
+  return {
+    enabled: config?.enabled ?? defaults.enabled,
+    root: config?.root ?? defaults.root,
+  }
+}
+
 export function expandConfig(config: AgentLedgerConfigInput = {}): AgentLedgerConfig {
   const defaults = getDefaultConfig(config.home)
 
@@ -202,6 +223,7 @@ export function expandConfig(config: AgentLedgerConfigInput = {}): AgentLedgerCo
       gemini: expandGeminiSourceConfig(defaults.sources.gemini, config.sources?.gemini),
       opencode: expandOpenCodeSourceConfig(defaults.sources.opencode, config.sources?.opencode),
       codex: expandCodexSourceConfig(defaults.sources.codex, config.sources?.codex),
+      pi: expandPiSourceConfig(defaults.sources.pi, config.sources?.pi),
     },
   }
 }

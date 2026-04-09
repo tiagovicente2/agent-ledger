@@ -18,7 +18,7 @@ import {
 
 export type ActiveAgent = AgentName | 'all'
 
-export const AGENT_TABS: readonly ActiveAgent[] = ['all', 'claude', 'gemini', 'opencode', 'codex']
+export const AGENT_TABS: readonly ActiveAgent[] = ['all', 'claude', 'gemini', 'opencode', 'codex', 'pi']
 
 export const TIME_WINDOW_OPTIONS: readonly TimeWindow[] = ['24h', '7d', '30d', 'all']
 export const SORT_KEY_OPTIONS: readonly SortKey[] = ['recent', 'token_usage', 'est_cost']

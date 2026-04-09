@@ -28,7 +28,7 @@ export function HelpOverlay({ height, width }: HelpOverlayProps) {
       <text marginTop={1}>
         <strong>Navigation</strong>
       </text>
-      <text>1..5 / [ ] switch tabs</text>
+      <text>1..6 / [ ] switch tabs</text>
       <text>j / k or arrows move the selected session</text>
       <text>t changes the time window</text>
       <text>s changes the sort key, a flips sort order</text>

@@ -41,6 +41,7 @@ function normalizeSnapshot(snapshot: SourceFingerprintSnapshot): SourceFingerpri
       gemini: sortFingerprints(snapshot.sources.gemini),
       opencode: sortFingerprints(snapshot.sources.opencode),
       codex: sortFingerprints(snapshot.sources.codex),
+      pi: sortFingerprints(snapshot.sources.pi),
     },
   }
 }
@@ -85,11 +86,12 @@ export async function fingerprintPaths(paths: string[]): Promise<SourceFingerpri
 export async function fingerprintSources(
   discoveredSources: DiscoveredSourceMap,
 ): Promise<SourceFingerprintSnapshot> {
-  const [claude, gemini, opencode, codex] = await Promise.all([
+  const [claude, gemini, opencode, codex, pi] = await Promise.all([
     fingerprintPaths(getDiscoveredPaths(discoveredSources.claude)),
     fingerprintPaths(getDiscoveredPaths(discoveredSources.gemini)),
     fingerprintPaths(getDiscoveredPaths(discoveredSources.opencode)),
     fingerprintPaths(getDiscoveredPaths(discoveredSources.codex)),
+    fingerprintPaths(getDiscoveredPaths(discoveredSources.pi)),
   ])
 
   return {
@@ -98,6 +100,7 @@ export async function fingerprintSources(
       gemini,
       opencode,
       codex,
+      pi,
     },
   }
 }
@@ -113,6 +116,7 @@ export function fingerprintsMatch(
     fingerprintListsMatch(normalizedLeft.sources.claude, normalizedRight.sources.claude) &&
     fingerprintListsMatch(normalizedLeft.sources.gemini, normalizedRight.sources.gemini) &&
     fingerprintListsMatch(normalizedLeft.sources.opencode, normalizedRight.sources.opencode) &&
-    fingerprintListsMatch(normalizedLeft.sources.codex, normalizedRight.sources.codex)
+    fingerprintListsMatch(normalizedLeft.sources.codex, normalizedRight.sources.codex) &&
+    fingerprintListsMatch(normalizedLeft.sources.pi, normalizedRight.sources.pi)
   )
 }

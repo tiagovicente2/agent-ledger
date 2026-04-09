@@ -1,6 +1,7 @@
 export { parseClaudeSession } from './adapters/claude'
 export { parseCodexSession } from './adapters/codex'
 export { parseGeminiSession } from './adapters/gemini'
+export { parsePiSession } from './adapters/pi'
 export type {
   OpenCodeQueryable,
   OpenCodeQueryResultRow,
@@ -23,6 +24,7 @@ export type {
   CodexSourceConfig,
   GeminiSourceConfig,
   OpenCodeSourceConfig,
+  PiSourceConfig,
 } from './config'
 export { expandConfig, getDefaultConfig, getPricingOverridePaths } from './config'
 export type { DiscoveredSource, DiscoveredSourceMap } from './discovery'
