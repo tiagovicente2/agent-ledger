@@ -2,6 +2,8 @@
 
 Agent Ledger is a Bun monorepo that reads local coding-agent usage data and shows a summarized snapshot in an OpenTUI dashboard.
 
+<img width="1512" height="1000" alt="image" src="https://github.com/user-attachments/assets/8f76b2d6-7df6-442d-9026-6f42f75243cd" />
+
 ## Installation
 
 Linux and macOS:
