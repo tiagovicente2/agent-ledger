@@ -4,6 +4,8 @@ Agent Ledger is a Bun monorepo that reads local coding-agent usage data and show
 
 Costs are resolved from a mix of native source-reported values and local pricing estimates. The TUI uses `~$` for estimated or partial costs and reserves `n/a` for sessions where no usable cost data could be resolved.
 
+<img width="1512" height="1000" alt="image" src="https://github.com/user-attachments/assets/8f76b2d6-7df6-442d-9026-6f42f75243cd" />
+
 ## Installation
 
 Linux and macOS:
