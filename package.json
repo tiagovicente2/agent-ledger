@@ -15,8 +15,8 @@
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "dev": "bun run --cwd apps/tui dev",
-    "snapshot": "bun run --cwd packages/service snapshot",
+    "dev": "bun run apps/tui/src/main.tsx",
+    "snapshot": "bun run packages/service/src/generate-snapshot.ts",
     "typecheck": "tsc -p packages/service/tsconfig.json --noEmit && tsc -p apps/tui/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
     "build:release": "bun run script/build.ts",
     "release:version": "bun run script/version.ts",

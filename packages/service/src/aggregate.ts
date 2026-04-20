@@ -1,6 +1,8 @@
 import { basename } from 'node:path'
 
+import { aggregateMessageCosts, aggregateSummaryCosts } from './costs'
 import type {
+  CostMode,
   SourceState,
   SummarySnapshot,
   SummaryTotals,
@@ -29,14 +31,6 @@ function addTotals(left: TokenTotals, right: TokenTotals): TokenTotals {
     cacheWrite: left.cacheWrite + right.cacheWrite,
     total: left.total + right.total,
   }
-}
-
-function summarizeCosts(messages: UsageMessage[]): number | null {
-  if (messages.some((message) => message.costEstimateUsd === null)) {
-    return null
-  }
-
-  return messages.reduce((total, message) => total + (message.costEstimateUsd ?? 0), 0)
 }
 
 function inferSessionId(message: UsageMessage): string | null {
@@ -106,7 +100,10 @@ function summarizeProjectPath(messages: UsageMessage[]): {
   }
 }
 
-export function aggregateSessions(messages: UsageMessage[]): UsageSession[] {
+export function aggregateSessions(
+  messages: UsageMessage[],
+  costMode: CostMode = 'auto',
+): UsageSession[] {
   const groups = new Map<string, UsageMessage[]>()
 
   for (const message of messages) {
@@ -156,6 +153,7 @@ export function aggregateSessions(messages: UsageMessage[]): UsageSession[] {
         sortedMessages[0],
         sortedMessages.at(-1) ?? sortedMessages[0],
       ]
+      const costSummary = aggregateMessageCosts(sortedMessages, costMode)
 
       return {
         id: groupKey,
@@ -167,7 +165,11 @@ export function aggregateSessions(messages: UsageMessage[]): UsageSession[] {
         messageCount: sortedMessages.length,
         modelsUsed,
         tokenTotals,
-        estimatedCostUsd: summarizeCosts(sortedMessages),
+        costUsd: costSummary.costUsd,
+        costStatus: costSummary.costStatus,
+        costProvenance: costSummary.costProvenance,
+        missingCostMessageCount: costSummary.missingCostMessageCount,
+        missingCostTokenTotal: costSummary.missingCostTokenTotal,
         confidence:
           inferenceReasons.length === 0 && projectSummary.confidence === 'exact'
             ? 'exact'
@@ -192,11 +194,13 @@ export function buildSummaryTotals(sessions: UsageSession[]): SummaryTotals {
     createEmptyTotals(),
   )
 
+  const costs = aggregateSummaryCosts(sessions)
+
   return {
     tokens,
-    totalEstimatedCostUsd: sessions.every((session) => session.estimatedCostUsd !== null)
-      ? sessions.reduce((total, session) => total + (session.estimatedCostUsd ?? 0), 0)
-      : null,
+    totalCostUsd: costs.totalCostUsd,
+    costStatus: costs.costStatus,
+    costProvenance: costs.costProvenance,
     sessionsCount: sessions.length,
   }
 }
@@ -205,8 +209,9 @@ export function buildSummarySnapshot(
   messages: UsageMessage[],
   sources: SourceState[],
   generatedAt = new Date().toISOString(),
+  costMode: CostMode = 'auto',
 ): SummarySnapshot {
-  const sessions = aggregateSessions(messages)
+  const sessions = aggregateSessions(messages, costMode)
   const warnings = [...new Set(sources.flatMap((source) => source.warnings))]
 
   return {

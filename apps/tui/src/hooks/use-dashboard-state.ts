@@ -1,6 +1,8 @@
 import {
+  createDemoSnapshot,
   type AgentName,
   loadSnapshot,
+  readSummarySnapshot,
   type SummarySnapshot,
   type UsageSession,
 } from '@agent-ledger/service'
@@ -23,6 +25,11 @@ export const AGENT_TABS: readonly ActiveAgent[] = ['all', 'claude', 'gemini', 'o
 export const TIME_WINDOW_OPTIONS: readonly TimeWindow[] = ['24h', '7d', '30d', 'all']
 export const SORT_KEY_OPTIONS: readonly SortKey[] = ['recent', 'token_usage', 'est_cost']
 export const SORT_DIRECTION_OPTIONS: readonly SortDirection[] = ['desc', 'asc']
+
+export interface UseDashboardStateOptions {
+  mode?: 'live' | 'demo' | 'file'
+  snapshotPath?: string | null
+}
 
 export interface DashboardState {
   activeAgent: ActiveAgent
@@ -49,7 +56,24 @@ function toErrorMessage(error: unknown) {
   return String(error)
 }
 
-export function useDashboardState(): DashboardState {
+async function loadDashboardSnapshot(options: UseDashboardStateOptions): Promise<SummarySnapshot> {
+  if (options.mode === 'demo') {
+    return createDemoSnapshot()
+  }
+
+  if (options.mode === 'file') {
+    if (!options.snapshotPath) {
+      throw new Error('Missing snapshot path')
+    }
+
+    return readSummarySnapshot(options.snapshotPath)
+  }
+
+  return loadSnapshot()
+}
+
+export function useDashboardState(options: UseDashboardStateOptions = {}): DashboardState {
+  const { mode = 'live', snapshotPath = null } = options
   const [snapshot, setSnapshot] = useState<SummarySnapshot | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(true)
@@ -78,7 +102,7 @@ export function useDashboardState(): DashboardState {
     setIsRefreshing(true)
 
     try {
-      const nextSnapshot = await loadSnapshot()
+      const nextSnapshot = await loadDashboardSnapshot({ mode, snapshotPath })
 
       if (requestId === latestRequestIdRef.current) {
         setSnapshot(nextSnapshot)
@@ -95,7 +119,7 @@ export function useDashboardState(): DashboardState {
         setIsRefreshing(false)
       }
     }
-  }, [])
+  }, [mode, snapshotPath])
 
   useEffect(() => {
     void refresh()

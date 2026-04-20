@@ -38,6 +38,7 @@ export function HelpOverlay({ height, width }: HelpOverlayProps) {
         <strong>Views</strong>
       </text>
       <text>The status bar shows filter, sort, selection, and refresh state.</text>
+      <text>Costs prefixed with ~ are estimated or partial rather than exact.</text>
       <text marginTop={1}>
         <strong>Exit</strong>
       </text>

@@ -8,11 +8,13 @@ export type {
 } from './adapters/opencode'
 export { loadOpenCodeMessages } from './adapters/opencode'
 export { aggregateSessions, buildSummarySnapshot, buildSummaryTotals } from './aggregate'
+export { aggregateMessageCosts, aggregateSummaryCosts, resolveMessageCost } from './costs'
 export type { CachePayload } from './cache-store'
 export {
   CACHE_PAYLOAD_VERSION,
   createCachePayload,
   isCachePayload,
+  isSummarySnapshot,
   readCache,
   shouldReuseCache,
   writeCache,
@@ -29,6 +31,7 @@ export type {
 export { expandConfig, getDefaultConfig, getPricingOverridePaths } from './config'
 export type { DiscoveredSource, DiscoveredSourceMap } from './discovery'
 export { discoverSources, getDiscoveredPaths } from './discovery'
+export { createDemoSnapshot } from './demo-snapshot'
 export type {
   SourceFingerprint,
   SourceFingerprintMap,
@@ -42,6 +45,7 @@ export {
 } from './fingerprints'
 export { loadSnapshot } from './load-snapshot'
 export { normalizeMessages } from './normalize'
+export { readSummarySnapshot } from './snapshot-file'
 export type { CostEstimate } from './pricing'
 export {
   estimateCost,
@@ -52,6 +56,9 @@ export {
 } from './pricing'
 export type {
   AgentName,
+  CostMode,
+  CostProvenance,
+  CostStatus,
   MessageRole,
   PricingEntry,
   PricingProvenance,

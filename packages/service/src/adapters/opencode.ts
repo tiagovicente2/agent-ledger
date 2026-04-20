@@ -84,6 +84,7 @@ export function loadOpenCodeMessages(
           toIsoTimestamp(time?.created) ??
           new Date(0).toISOString(),
         role: 'assistant',
+        sourceCostUsd: toNumber(data.cost) > 0 ? toNumber(data.cost) : null,
         tokens: {
           input: toNumber(tokens?.input),
           output: toNumber(tokens?.output),

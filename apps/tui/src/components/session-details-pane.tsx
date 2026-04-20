@@ -85,11 +85,13 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }
 
-function formatUsd(value: number | null) {
+function formatUsd(value: number | null, status: UsageSession['costStatus']) {
   if (value === null) {
     return 'n/a'
   }
-  return `$${value.toFixed(2)}`
+
+  const prefix = status === 'exact' ? '' : '~'
+  return `${prefix}$${value.toFixed(2)}`
 }
 
 function formatTimestamp(value: string) {
@@ -335,7 +337,7 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
 
   const summaryRows = [
     `Agent: ${formatAgent(session.agent)}`,
-    `Tokens: ${session.tokenTotals.total.toLocaleString()}   Cost: ${formatUsd(session.estimatedCostUsd)}`,
+    `Tokens: ${session.tokenTotals.total.toLocaleString()}   Cost: ${formatUsd(session.costUsd, session.costStatus)}`,
     `Messages: ${session.messageCount}`,
     `Started: ${formatTimestamp(session.startedAt)}`,
     `Ended: ${formatTimestamp(session.endedAt)}`,
@@ -349,6 +351,14 @@ export function SessionDetailsPane({ height, session, width }: SessionDetailsPan
     ...(models.length > 1 ? [`More models: +${models.length - 1}`] : []),
     `Model count: ${models.length}`,
     `Confidence: ${session.confidence}`,
+    `Cost status: ${session.costStatus}`,
+    `Cost source: ${session.costProvenance}`,
+    ...(session.missingCostMessageCount > 0
+      ? [
+          `Missing cost msgs: ${session.missingCostMessageCount}`,
+          `Missing cost tokens: ${session.missingCostTokenTotal.toLocaleString()}`,
+        ]
+      : []),
     `Session: ${session.nativeSessionId ?? 'derived'}`,
     ...(session.inferenceReason ? [`Reason: ${session.inferenceReason}`] : []),
   ]

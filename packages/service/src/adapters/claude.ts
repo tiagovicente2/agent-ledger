@@ -125,6 +125,7 @@ export function parseClaudeSession(content: string, rawRef: string): UsageMessag
           timestamp,
           role: toRole(message?.role ?? row.role ?? row.type),
           tokens: normalizeTotals(usage),
+          sourceCostUsd: null,
           rawRef,
         },
       ]

@@ -49,17 +49,36 @@ function compareByStartedAt(left: UsageSession, right: UsageSession) {
   return right.startedAt.localeCompare(left.startedAt)
 }
 
+function getCostStatusRank(session: UsageSession) {
+  switch (session.costStatus) {
+    case 'exact':
+      return 3
+    case 'estimated':
+      return 2
+    case 'partial':
+      return 1
+    case 'missing':
+      return 0
+  }
+}
+
 function compareByKey(left: UsageSession, right: UsageSession, key: SortKey) {
   if (key === 'token_usage' && right.tokenTotals.total !== left.tokenTotals.total) {
     return right.tokenTotals.total - left.tokenTotals.total
   }
 
   if (key === 'est_cost') {
-    const leftCost = left.estimatedCostUsd ?? Number.NEGATIVE_INFINITY
-    const rightCost = right.estimatedCostUsd ?? Number.NEGATIVE_INFINITY
+    const leftCost = left.costUsd ?? Number.NEGATIVE_INFINITY
+    const rightCost = right.costUsd ?? Number.NEGATIVE_INFINITY
 
     if (rightCost !== leftCost) {
       return rightCost - leftCost
+    }
+
+    const statusOrder = getCostStatusRank(right) - getCostStatusRank(left)
+
+    if (statusOrder !== 0) {
+      return statusOrder
     }
   }
 

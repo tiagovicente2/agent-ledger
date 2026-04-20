@@ -6,9 +6,9 @@ Agent Ledger reads local usage artifacts from coding assistants, normalizes mess
 
 1. discover local data sources
 2. load and parse source-specific records
-3. normalize records into a shared usage model
-4. estimate cost when pricing is available
-5. aggregate messages into sessions and totals
+3. preserve native source cost when a source provides it
+4. normalize records into a shared usage model and estimate fallback cost when pricing is available
+5. aggregate messages into sessions and totals with exact / estimated / partial / missing cost status
 6. cache the resulting snapshot
 7. render the dashboard from the snapshot
 
@@ -41,6 +41,7 @@ The cached snapshot is reused when:
 
 - discovered source fingerprints match
 - pricing override fingerprint matches
+- configured cost mode matches
 
 Otherwise, Agent Ledger rebuilds the snapshot and writes a fresh cache file.
 
@@ -49,7 +50,7 @@ Otherwise, Agent Ledger rebuilds the snapshot and writes a fresh cache file.
 The TUI shows:
 
 - source health and warnings
-- token totals and estimated costs
+- token totals and resolved costs
 - session lists with filtering and sorting
 - per-agent and per-model usage drivers
-- always-on session context and token mix details for the selected session
+- always-on session context, token mix, and cost quality details for the selected session

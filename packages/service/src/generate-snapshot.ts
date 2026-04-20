@@ -1,19 +1,32 @@
-import { writeFile } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 
 import { getDefaultConfig } from './config'
+import { createDemoSnapshot } from './demo-snapshot'
 import { loadSnapshot } from './load-snapshot'
 
+import type { CostMode } from './types'
+
 interface CliOptions {
+  costMode: CostMode | null
+  demo: boolean
   json: boolean
   outPath: string | null
 }
 
 function parseCliOptions(argv: string[]): CliOptions {
+  let demo = false
   let json = false
   let outPath: string | null = null
+  let costMode: CostMode | null = null
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index]
+
+    if (value === '--demo') {
+      demo = true
+      continue
+    }
 
     if (value === '--json') {
       json = true
@@ -23,21 +36,37 @@ function parseCliOptions(argv: string[]): CliOptions {
     if (value === '--out') {
       outPath = argv[index + 1] ?? null
       index += 1
+      continue
+    }
+
+    if (value === '--cost-mode') {
+      const nextValue = argv[index + 1]
+
+      if (nextValue === 'auto' || nextValue === 'calculate' || nextValue === 'display') {
+        costMode = nextValue
+      }
+
+      index += 1
     }
   }
 
   return {
+    costMode,
+    demo,
     json,
     outPath,
   }
 }
 
-function formatUsd(value: number | null) {
+function formatResolvedUsd(
+  value: number | null,
+  status: 'exact' | 'estimated' | 'partial' | 'missing',
+) {
   if (value === null) {
     return 'n/a'
   }
 
-  return `$${value.toFixed(2)}`
+  return `${status === 'exact' ? '' : '~'}$${value.toFixed(2)}`
 }
 
 async function main() {
@@ -47,10 +76,16 @@ async function main() {
     throw new Error('Missing path after --out')
   }
 
-  const snapshot = await loadSnapshot()
   const config = getDefaultConfig()
+  const effectiveCostMode = options.costMode ?? config.costMode
+  const snapshot = options.demo
+    ? createDemoSnapshot()
+    : await loadSnapshot({
+        costMode: effectiveCostMode,
+      })
 
   if (options.outPath) {
+    await mkdir(dirname(options.outPath), { recursive: true })
     await writeFile(options.outPath, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8')
   }
 
@@ -64,9 +99,10 @@ async function main() {
     `Generated at: ${snapshot.generatedAt}`,
     `Sessions: ${snapshot.totals.sessionsCount.toLocaleString()}`,
     `Tokens: ${snapshot.totals.tokens.total.toLocaleString()}`,
-    `Est cost: ${formatUsd(snapshot.totals.totalEstimatedCostUsd)}`,
+    `Cost: ${formatResolvedUsd(snapshot.totals.totalCostUsd, snapshot.totals.costStatus)}`,
     `Warnings: ${snapshot.warnings.length.toLocaleString()}`,
-    `Cache path: ${config.cachePath}`,
+    `Cost mode: ${effectiveCostMode}`,
+    options.demo ? 'Source: built-in demo snapshot' : `Cache path: ${config.cachePath}`,
   ]
 
   if (options.outPath) {

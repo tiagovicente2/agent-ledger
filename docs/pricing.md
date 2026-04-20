@@ -1,6 +1,36 @@
 # Pricing in Agent Ledger
 
-Agent Ledger estimates USD cost per message from token totals and a pricing catalog.
+Agent Ledger resolves USD cost per message from two inputs:
+
+- native source-reported cost when available
+- token-based estimation from a pricing catalog
+
+## Cost Resolution Modes
+
+Agent Ledger supports three cost modes through service configuration:
+
+- `auto` (default): prefer native source cost, fall back to catalog estimation
+- `calculate`: ignore native cost and always estimate from tokens
+- `display`: show only native source cost
+
+You can use the snapshot generator with an explicit mode:
+
+```sh
+bun run snapshot -- --cost-mode auto
+bun run snapshot -- --cost-mode calculate
+bun run snapshot -- --cost-mode display
+```
+
+Programmatic callers can also pass `costMode` through `loadSnapshot()` config.
+
+Session and summary costs carry status metadata:
+
+- `exact`: all resolved cost came from the source
+- `estimated`: all resolved cost was computed locally or mixed source/catalog without gaps
+- `partial`: some cost was resolved, but some cost-bearing messages were missing pricing
+- `missing`: no usable cost data was available
+
+Zero-token synthetic/error rows do not force a session into `missing`.
 
 ## Built-in Catalog
 
@@ -22,8 +52,10 @@ Model matching is tolerant to common naming differences:
 - variant suffixes (for example `:free`)
 - punctuation variants (dot vs dash)
 - provider inference by agent/model prefix, with fallback matching
+- known aliases for evolving model names (for example Codex variants)
+- zero-cost handling for known free routes such as `:free` and `-free`
 
-If no matching entry is found, usage still loads but estimated cost remains `null`.
+If no matching entry is found, usage still loads. The session may still show a numeric partial cost if other messages in the same session were resolved.
 
 ## Local Pricing Overrides
 
@@ -37,6 +69,8 @@ Accepted formats:
 - an object with an `entries` array
 
 Matching `provider` + `model` pairs override built-in entries.
+
+This is also the recommended escape hatch for newly released models before Agent Ledger ships a built-in catalog update.
 
 Example:
 

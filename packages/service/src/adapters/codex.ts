@@ -255,6 +255,7 @@ export function parseCodexSession(content: string, rawRef: string): UsageMessage
           timestamp,
           role: 'assistant',
           tokens: delta,
+          sourceCostUsd: null,
           rawRef,
         },
       ]

@@ -26,12 +26,13 @@ function formatTimestamp(value: string) {
   return parsedDate.toISOString().slice(5, 16).replace('T', ' ')
 }
 
-function formatUsd(value: number | null) {
+function formatUsd(value: number | null, status: UsageSession['costStatus']) {
   if (value === null) {
     return 'n/a'
   }
 
-  return `$${value.toFixed(2)}`
+  const prefix = status === 'exact' ? '' : '~'
+  return `${prefix}$${value.toFixed(2)}`
 }
 
 function truncate(value: string, maxLength: number) {
@@ -149,7 +150,7 @@ export function SessionListPane({
               `${pad(formatAgent(session.agent), agentWidth)} ` +
               `${pad(session.projectPath ?? 'unknown', compactProjectWidth, 'end-path')} ` +
               `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
-              `${pad(formatUsd(session.estimatedCostUsd), costWidth)}`
+              `${pad(formatUsd(session.costUsd, session.costStatus), costWidth)}`
 
             return fitLine(compactRow, contentWidth)
           }
@@ -159,7 +160,7 @@ export function SessionListPane({
             `${pad(formatAgent(session.agent), agentWidth)} ` +
             `${pad(session.projectPath ?? 'unknown', fullProjectWidth, 'end-path')} ` +
             `${pad(formatTokens(session.tokenTotals.total, tokensWidth), tokensWidth)} ` +
-            `${pad(formatUsd(session.estimatedCostUsd), costWidth)} ` +
+            `${pad(formatUsd(session.costUsd, session.costStatus), costWidth)} ` +
             `${pad(String(session.messageCount), messagesWidth)} ` +
             `${pad(formatTimestamp(session.startedAt), startedWidth)}`
 

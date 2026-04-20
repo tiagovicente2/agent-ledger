@@ -45,6 +45,13 @@ function parseJsonLine(line: string): PiJsonLine | null {
   }
 }
 
+function getSourceCostUsd(usage: Record<string, unknown>): number | null {
+  const cost = isRecord(usage.cost) ? usage.cost : null
+  const total = toNumber(cost?.total)
+
+  return total > 0 || (cost && total === 0) ? total : null
+}
+
 function normalizeTotals(usage: Record<string, unknown>): TokenTotals {
   const input = toNumber(usage.input)
   const output = toNumber(usage.output)
@@ -121,6 +128,7 @@ export function parsePiSession(content: string, rawRef: string): UsageMessageInp
           timestamp,
           role: 'assistant',
           tokens: normalizeTotals(usage),
+          sourceCostUsd: getSourceCostUsd(usage),
           rawRef,
         },
       ]

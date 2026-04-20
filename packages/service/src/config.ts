@@ -1,6 +1,8 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import type { CostMode } from './types'
+
 export interface ClaudeSourceConfig {
   enabled: boolean
   root: string
@@ -30,6 +32,7 @@ export interface AgentLedgerConfig {
   home: string
   pricingOverridePath: string
   cachePath: string
+  costMode: CostMode
   sources: {
     claude: ClaudeSourceConfig
     gemini: GeminiSourceConfig
@@ -43,6 +46,7 @@ export interface AgentLedgerConfigInput {
   home?: string
   pricingOverridePath?: string
   cachePath?: string
+  costMode?: CostMode
   sources?: {
     claude?: Partial<ClaudeSourceConfig>
     gemini?: Partial<GeminiSourceConfig>
@@ -59,6 +63,7 @@ export function getDefaultConfig(home = homedir()): AgentLedgerConfig {
     home,
     pricingOverridePath: defaults.pricingOverridePath,
     cachePath: defaults.cachePath,
+    costMode: 'auto',
     sources: {
       claude: {
         enabled: true,
@@ -218,6 +223,7 @@ export function expandConfig(config: AgentLedgerConfigInput = {}): AgentLedgerCo
     home: config.home ?? defaults.home,
     pricingOverridePath: config.pricingOverridePath ?? defaults.pricingOverridePath,
     cachePath: config.cachePath ?? defaults.cachePath,
+    costMode: config.costMode ?? defaults.costMode,
     sources: {
       claude: expandClaudeSourceConfig(defaults.sources.claude, config.sources?.claude),
       gemini: expandGeminiSourceConfig(defaults.sources.gemini, config.sources?.gemini),

@@ -21,7 +21,9 @@ import {
 } from './hooks/use-dashboard-state.ts'
 
 interface AppProps {
+  mode?: 'live' | 'demo' | 'file'
   onQuit: () => void
+  snapshotPath?: string | null
 }
 
 interface DashboardAppProps extends AppProps {
@@ -79,15 +81,17 @@ function createEmptySnapshot(): SummarySnapshot {
         reasoning: 0,
         total: 0,
       },
-      totalEstimatedCostUsd: 0,
+      totalCostUsd: 0,
+      costStatus: 'missing',
+      costProvenance: 'none',
     },
     warnings: [],
   }
 }
 
-export function App({ onQuit }: AppProps) {
+export function App({ mode = 'live', onQuit, snapshotPath = null }: AppProps) {
   const { width, height } = useTerminalDimensions()
-  const dashboardState = useDashboardState()
+  const dashboardState = useDashboardState({ mode, snapshotPath })
 
   return (
     <DashboardApp

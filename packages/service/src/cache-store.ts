@@ -3,14 +3,15 @@ import { dirname } from 'node:path'
 
 import type { SourceFingerprint, SourceFingerprintSnapshot } from './fingerprints'
 import { fingerprintsMatch } from './fingerprints'
-import type { SummarySnapshot } from './types'
+import type { CostMode, SummarySnapshot } from './types'
 
-export const CACHE_PAYLOAD_VERSION = 5
+export const CACHE_PAYLOAD_VERSION = 6
 
 export interface CachePayload {
   version: typeof CACHE_PAYLOAD_VERSION
   fingerprints: SourceFingerprintSnapshot
   pricingOverrideFingerprints: SourceFingerprint[]
+  costMode: CostMode
   snapshot: SummarySnapshot
 }
 
@@ -114,7 +115,17 @@ function isUsageSession(value: unknown): boolean {
     isNumber(value.messageCount) &&
     isStringArray(value.modelsUsed) &&
     isTokenTotals(value.tokenTotals) &&
-    (isNumber(value.estimatedCostUsd) || value.estimatedCostUsd === null) &&
+    (isNumber(value.costUsd) || value.costUsd === null) &&
+    (value.costStatus === 'exact' ||
+      value.costStatus === 'estimated' ||
+      value.costStatus === 'partial' ||
+      value.costStatus === 'missing') &&
+    (value.costProvenance === 'source' ||
+      value.costProvenance === 'catalog' ||
+      value.costProvenance === 'mixed' ||
+      value.costProvenance === 'none') &&
+    isNumber(value.missingCostMessageCount) &&
+    isNumber(value.missingCostTokenTotal) &&
     (value.confidence === 'exact' || value.confidence === 'inferred') &&
     (typeof value.inferenceReason === 'string' || value.inferenceReason === null)
   )
@@ -127,12 +138,20 @@ function isSummaryTotals(value: unknown): boolean {
 
   return (
     isTokenTotals(value.tokens) &&
-    (isNumber(value.totalEstimatedCostUsd) || value.totalEstimatedCostUsd === null) &&
+    (isNumber(value.totalCostUsd) || value.totalCostUsd === null) &&
+    (value.costStatus === 'exact' ||
+      value.costStatus === 'estimated' ||
+      value.costStatus === 'partial' ||
+      value.costStatus === 'missing') &&
+    (value.costProvenance === 'source' ||
+      value.costProvenance === 'catalog' ||
+      value.costProvenance === 'mixed' ||
+      value.costProvenance === 'none') &&
     isNumber(value.sessionsCount)
   )
 }
 
-function isSummarySnapshot(value: unknown): value is SummarySnapshot {
+export function isSummarySnapshot(value: unknown): value is SummarySnapshot {
   if (!isRecord(value)) {
     return false
   }
@@ -155,6 +174,7 @@ export function isCachePayload(value: unknown): value is CachePayload {
 
   return (
     value.version === CACHE_PAYLOAD_VERSION &&
+    (value.costMode === 'auto' || value.costMode === 'calculate' || value.costMode === 'display') &&
     isSourceFingerprintSnapshot(value.fingerprints) &&
     isSourceFingerprintList(value.pricingOverrideFingerprints) &&
     isSummarySnapshot(value.snapshot)
@@ -165,11 +185,13 @@ export function createCachePayload(
   fingerprints: SourceFingerprintSnapshot,
   pricingOverrideFingerprints: SourceFingerprint[],
   snapshot: SummarySnapshot,
+  costMode: CostMode,
 ): CachePayload {
   return {
     version: CACHE_PAYLOAD_VERSION,
     fingerprints,
     pricingOverrideFingerprints,
+    costMode,
     snapshot,
   }
 }
@@ -196,9 +218,11 @@ export function shouldReuseCache(
   payload: CachePayload | null,
   fingerprints: SourceFingerprintSnapshot,
   pricingOverrideFingerprints: SourceFingerprint[],
+  costMode: CostMode,
 ): payload is CachePayload {
   return (
     payload !== null &&
+    payload.costMode === costMode &&
     fingerprintsMatch(payload.fingerprints, fingerprints) &&
     sourceFingerprintListsMatch(payload.pricingOverrideFingerprints, pricingOverrideFingerprints)
   )

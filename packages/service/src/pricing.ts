@@ -88,6 +88,17 @@ const BUILTIN_PRICING_CATALOG: PricingEntry[] = [
   },
   {
     provider: 'anthropic',
+    model: 'claude-opus-4-7',
+    currency: 'USD',
+    inputPerMillion: 5,
+    outputPerMillion: 25,
+    reasoningPerMillion: 0,
+    cacheReadPerMillion: 0.5,
+    cacheWritePerMillion: 6.25,
+    source: 'builtin',
+  },
+  {
+    provider: 'anthropic',
     model: 'claude-haiku-4-5',
     currency: 'USD',
     inputPerMillion: 1,

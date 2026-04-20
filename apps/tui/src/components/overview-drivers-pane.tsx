@@ -263,11 +263,8 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
       (agentTokenMap.get(session.agent) ?? 0) + session.tokenTotals.total,
     )
 
-    if (session.estimatedCostUsd !== null) {
-      agentCostMap.set(
-        session.agent,
-        (agentCostMap.get(session.agent) ?? 0) + session.estimatedCostUsd,
-      )
+    if (session.costUsd !== null) {
+      agentCostMap.set(session.agent, (agentCostMap.get(session.agent) ?? 0) + session.costUsd)
     }
 
     const models = session.modelsUsed.length > 0 ? session.modelsUsed : ['unknown']
@@ -349,8 +346,8 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
       { key: 'tokens', title: 'Agent Tokens', rows: agentTokenRows },
       {
         key: 'cost',
-        title: 'Agent Cost (est)',
-        rows: agentCostRows.length > 0 ? agentCostRows : ['No cost data'],
+        title: 'Agent Cost',
+        rows: agentCostRows.length > 0 ? agentCostRows : ['No resolved cost data'],
       },
     ]
 
@@ -430,8 +427,8 @@ export function OverviewDriversPane({ height, sessions, totals, width }: Overvie
     { key: 'tokens', title: 'Agent Tokens', rows: agentTokenRows },
     {
       key: 'cost',
-      title: 'Agent Cost (est)',
-      rows: agentCostRows.length > 0 ? agentCostRows : ['No cost data'],
+      title: 'Agent Cost',
+      rows: agentCostRows.length > 0 ? agentCostRows : ['No resolved cost data'],
     },
   ]
   const stackHeights = planCardHeights(contentHeight, cards.length, stackGap, 3)

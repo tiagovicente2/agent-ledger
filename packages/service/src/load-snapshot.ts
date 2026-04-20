@@ -260,7 +260,7 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
     readCache(config.cachePath),
   ])
 
-  if (shouldReuseCache(cachedPayload, fingerprints, pricingOverrideFingerprints)) {
+  if (shouldReuseCache(cachedPayload, fingerprints, pricingOverrideFingerprints, config.costMode)) {
     return cachedPayload.snapshot
   }
 
@@ -309,12 +309,12 @@ export async function loadSnapshot(configInput?: AgentLedgerConfigInput | AgentL
     [...claude.messages, ...gemini.messages, ...opencode.messages, ...codex.messages, ...pi.messages],
     pricingCatalog,
   )
-  const snapshot = buildSummarySnapshot(messages, sourceStates)
+  const snapshot = buildSummarySnapshot(messages, sourceStates, undefined, config.costMode)
 
   try {
     await writeCache(
       config.cachePath,
-      createCachePayload(fingerprints, pricingOverrideFingerprints, snapshot),
+      createCachePayload(fingerprints, pricingOverrideFingerprints, snapshot, config.costMode),
     )
 
     return snapshot

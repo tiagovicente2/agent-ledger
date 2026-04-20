@@ -116,6 +116,7 @@ export function parseGeminiSession(payload: unknown, rawRef: string): UsageMessa
         timestamp,
         role: toRole(entry.role ?? entry.type),
         tokens: normalizeTotals(entry),
+        sourceCostUsd: null,
         rawRef,
       },
     ]

@@ -1,6 +1,24 @@
 import { estimateCost } from './pricing'
 import type { AgentName, PricingEntry, UsageMessage, UsageMessageInput } from './types'
 
+const ZERO_COST_PRICING_ENTRY: PricingEntry = {
+  provider: 'free',
+  model: 'free',
+  currency: 'USD',
+  inputPerMillion: 0,
+  outputPerMillion: 0,
+  reasoningPerMillion: 0,
+  cacheReadPerMillion: 0,
+  cacheWritePerMillion: 0,
+  source: 'builtin',
+}
+
+const MODEL_ALIASES = new Map<string, string>([
+  ['gpt-5-codex', 'gpt-5.3-codex'],
+  ['gpt-5.1-codex', 'gpt-5.3-codex'],
+  ['gpt-5.1-codex-mini', 'gpt-5.3-codex-spark'],
+])
+
 function normalizeModel(model: string): string {
   return model.trim().toLowerCase()
 }
@@ -29,6 +47,23 @@ function stripKnownSuffixes(model: string): string[] {
   }
 
   return [...candidates].filter(Boolean)
+}
+
+function resolveModelAlias(model: string): string {
+  return MODEL_ALIASES.get(normalizeModel(model)) ?? normalizeModel(model)
+}
+
+function isKnownFreeModel(model: string): boolean {
+  const normalizedModel = normalizeModel(model)
+  const routedModel = stripRoutePrefix(normalizedModel)
+
+  return (
+    normalizedModel === 'openrouter/free' ||
+    normalizedModel.endsWith(':free') ||
+    normalizedModel.endsWith('-free') ||
+    routedModel.endsWith(':free') ||
+    routedModel.endsWith('-free')
+  )
 }
 
 function inferProvider(agent: AgentName, model: string): string | null {
@@ -71,7 +106,7 @@ function inferProvider(agent: AgentName, model: string): string | null {
 }
 
 function getPricingCandidates(model: string): string[] {
-  const normalizedModel = normalizeModel(model)
+  const normalizedModel = resolveModelAlias(model)
   const candidates = new Set<string>([normalizedModel])
   const routedModel = stripRoutePrefix(normalizedModel)
   const routeAndVariantStrippedModel = stripVariantSuffix(routedModel)
@@ -105,6 +140,13 @@ function findPricingEntry(
 ): PricingEntry | null {
   if (!message.model) {
     return null
+  }
+
+  if (isKnownFreeModel(message.model)) {
+    return {
+      ...ZERO_COST_PRICING_ENTRY,
+      model: normalizeModel(message.model),
+    }
   }
 
   const provider = inferProvider(message.agent, message.model)
@@ -153,7 +195,7 @@ export function normalizeMessages(
 
       return {
         ...input,
-        costEstimateUsd: pricing ? estimateCost(input.tokens, pricing).usd : null,
+        catalogCostUsd: pricing ? estimateCost(input.tokens, pricing).usd : null,
       }
     })
 }

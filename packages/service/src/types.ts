@@ -7,6 +7,9 @@ export type SupportLevel = 'exact' | 'heuristic' | 'unavailable'
 export type MessageRole = 'system' | 'user' | 'assistant' | 'tool' | 'unknown'
 
 export type PricingProvenance = 'builtin' | 'local_override'
+export type CostMode = 'auto' | 'calculate' | 'display'
+export type CostStatus = 'exact' | 'estimated' | 'partial' | 'missing'
+export type CostProvenance = 'source' | 'catalog' | 'mixed' | 'none'
 
 export interface TokenTotals {
   input: number
@@ -38,11 +41,12 @@ export interface UsageMessage {
   timestamp: string
   role: MessageRole
   tokens: TokenTotals
-  costEstimateUsd: number | null
+  sourceCostUsd: number | null
+  catalogCostUsd: number | null
   rawRef: string
 }
 
-export type UsageMessageInput = Omit<UsageMessage, 'costEstimateUsd'>
+export type UsageMessageInput = Omit<UsageMessage, 'catalogCostUsd'>
 
 export interface UsageSession {
   id: string
@@ -54,7 +58,11 @@ export interface UsageSession {
   messageCount: number
   modelsUsed: string[]
   tokenTotals: TokenTotals
-  estimatedCostUsd: number | null
+  costUsd: number | null
+  costStatus: CostStatus
+  costProvenance: CostProvenance
+  missingCostMessageCount: number
+  missingCostTokenTotal: number
   confidence: 'exact' | 'inferred'
   inferenceReason: string | null
 }
@@ -69,7 +77,9 @@ export interface SourceState {
 
 export interface SummaryTotals {
   tokens: TokenTotals
-  totalEstimatedCostUsd: number | null
+  totalCostUsd: number | null
+  costStatus: CostStatus
+  costProvenance: CostProvenance
   sessionsCount: number
 }
 

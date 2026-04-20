@@ -1,0 +1,391 @@
+{
+  "generatedAt": "2026-04-13T17:45:49.256Z",
+  "sources": [
+    {
+      "agent": "claude",
+      "status": "ready",
+      "supportLevel": "exact",
+      "discoveredPaths": [
+        "/demo/.claude/projects/agent-ledger/2026-04-13T0900.jsonl"
+      ],
+      "warnings": []
+    },
+    {
+      "agent": "gemini",
+      "status": "ready",
+      "supportLevel": "heuristic",
+      "discoveredPaths": [
+        "/demo/.gemini/tmp/launchpad-web/chats/session-2026-04-13.json"
+      ],
+      "warnings": []
+    },
+    {
+      "agent": "opencode",
+      "status": "ready",
+      "supportLevel": "exact",
+      "discoveredPaths": [
+        "/demo/.local/share/opencode/opencode.db"
+      ],
+      "warnings": []
+    },
+    {
+      "agent": "codex",
+      "status": "ready",
+      "supportLevel": "heuristic",
+      "discoveredPaths": [
+        "/demo/.codex/history/sandbox-mobile/session-2026-04-12.jsonl"
+      ],
+      "warnings": []
+    },
+    {
+      "agent": "pi",
+      "status": "ready",
+      "supportLevel": "exact",
+      "discoveredPaths": [
+        "/demo/.pi/agent/sessions/agent-ledger/demo-2026-04-13.jsonl"
+      ],
+      "warnings": []
+    }
+  ],
+  "sessions": [
+    {
+      "id": "demo-session-1",
+      "agent": "claude",
+      "nativeSessionId": "claude-demo-001",
+      "projectPath": "/demo/workspaces/agent-ledger",
+      "startedAt": "2026-04-13T13:45:49.256Z",
+      "endedAt": "2026-04-13T14:39:49.256Z",
+      "messageCount": 28,
+      "modelsUsed": [
+        "claude-sonnet-4.6"
+      ],
+      "tokenTotals": {
+        "input": 98000,
+        "output": 54000,
+        "reasoning": 21000,
+        "cacheRead": 6000,
+        "cacheWrite": 2000,
+        "total": 181000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 3.42
+    },
+    {
+      "id": "demo-session-2",
+      "agent": "opencode",
+      "nativeSessionId": "opencode-demo-001",
+      "projectPath": "/demo/workspaces/ops-automations",
+      "startedAt": "2026-04-13T08:45:49.256Z",
+      "endedAt": "2026-04-13T09:26:49.256Z",
+      "messageCount": 19,
+      "modelsUsed": [
+        "gpt-5.4"
+      ],
+      "tokenTotals": {
+        "input": 62000,
+        "output": 31000,
+        "reasoning": 9000,
+        "cacheRead": 16000,
+        "cacheWrite": 5000,
+        "total": 123000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 2.11
+    },
+    {
+      "id": "demo-session-3",
+      "agent": "pi",
+      "nativeSessionId": "pi-demo-001",
+      "projectPath": "/demo/workspaces/agent-ledger",
+      "startedAt": "2026-04-13T04:45:49.256Z",
+      "endedAt": "2026-04-13T05:21:49.256Z",
+      "messageCount": 15,
+      "modelsUsed": [
+        "gpt-5.4"
+      ],
+      "tokenTotals": {
+        "input": 34000,
+        "output": 19000,
+        "reasoning": 0,
+        "cacheRead": 4000,
+        "cacheWrite": 0,
+        "total": 57000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 0.48
+    },
+    {
+      "id": "demo-session-4",
+      "agent": "gemini",
+      "nativeSessionId": "gemini-demo-001",
+      "projectPath": "/demo/workspaces/launchpad-web",
+      "startedAt": "2026-04-12T21:45:49.256Z",
+      "endedAt": "2026-04-12T22:48:49.256Z",
+      "messageCount": 24,
+      "modelsUsed": [
+        "gemini-3.1-pro"
+      ],
+      "tokenTotals": {
+        "input": 81000,
+        "output": 46000,
+        "reasoning": 17000,
+        "cacheRead": 12000,
+        "cacheWrite": 3000,
+        "total": 159000
+      },
+      "confidence": "inferred",
+      "inferenceReason": "Gemini project path inferred from workspaceRoot metadata",
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 2.54
+    },
+    {
+      "id": "demo-session-5",
+      "agent": "codex",
+      "nativeSessionId": "codex-demo-001",
+      "projectPath": "/demo/workspaces/sandbox-mobile",
+      "startedAt": "2026-04-12T13:45:49.256Z",
+      "endedAt": "2026-04-12T14:17:49.256Z",
+      "messageCount": 18,
+      "modelsUsed": [
+        "gpt-5.4"
+      ],
+      "tokenTotals": {
+        "input": 57000,
+        "output": 29000,
+        "reasoning": 14000,
+        "cacheRead": 8000,
+        "cacheWrite": 2000,
+        "total": 110000
+      },
+      "confidence": "inferred",
+      "inferenceReason": "Codex project path inferred from turn context cwd",
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 1.97
+    },
+    {
+      "id": "demo-session-6",
+      "agent": "claude",
+      "nativeSessionId": "claude-demo-002",
+      "projectPath": "/demo/workspaces/launchpad-web",
+      "startedAt": "2026-04-12T06:45:49.256Z",
+      "endedAt": "2026-04-12T07:32:49.256Z",
+      "messageCount": 22,
+      "modelsUsed": [
+        "claude-sonnet-4.6"
+      ],
+      "tokenTotals": {
+        "input": 76000,
+        "output": 39000,
+        "reasoning": 18000,
+        "cacheRead": 10000,
+        "cacheWrite": 3000,
+        "total": 146000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 2.66
+    },
+    {
+      "id": "demo-session-7",
+      "agent": "gemini",
+      "nativeSessionId": "gemini-demo-002",
+      "projectPath": "/demo/workspaces/docs-site",
+      "startedAt": "2026-04-11T13:45:49.256Z",
+      "endedAt": "2026-04-11T14:11:49.256Z",
+      "messageCount": 14,
+      "modelsUsed": [
+        "gemini-3.1-pro"
+      ],
+      "tokenTotals": {
+        "input": 28000,
+        "output": 17000,
+        "reasoning": 3000,
+        "cacheRead": 6000,
+        "cacheWrite": 1000,
+        "total": 55000
+      },
+      "confidence": "inferred",
+      "inferenceReason": "Gemini project path inferred from session cwd",
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 0.59
+    },
+    {
+      "id": "demo-session-8",
+      "agent": "opencode",
+      "nativeSessionId": "opencode-demo-002",
+      "projectPath": "/demo/workspaces/infra-playground",
+      "startedAt": "2026-04-10T19:45:49.256Z",
+      "endedAt": "2026-04-10T20:43:49.256Z",
+      "messageCount": 21,
+      "modelsUsed": [
+        "gpt-5.4"
+      ],
+      "tokenTotals": {
+        "input": 69000,
+        "output": 38000,
+        "reasoning": 11000,
+        "cacheRead": 14000,
+        "cacheWrite": 4000,
+        "total": 136000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 2.08
+    },
+    {
+      "id": "demo-session-9",
+      "agent": "pi",
+      "nativeSessionId": "pi-demo-002",
+      "projectPath": "/demo/workspaces/customer-support-bot",
+      "startedAt": "2026-04-09T23:45:49.256Z",
+      "endedAt": "2026-04-10T00:24:49.256Z",
+      "messageCount": 16,
+      "modelsUsed": [
+        "claude-sonnet-4.6"
+      ],
+      "tokenTotals": {
+        "input": 41000,
+        "output": 23000,
+        "reasoning": 0,
+        "cacheRead": 5000,
+        "cacheWrite": 0,
+        "total": 69000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 0.67
+    },
+    {
+      "id": "demo-session-10",
+      "agent": "codex",
+      "nativeSessionId": "codex-demo-002",
+      "projectPath": "/demo/workspaces/sales-insights",
+      "startedAt": "2026-04-09T03:45:49.256Z",
+      "endedAt": "2026-04-09T04:29:49.256Z",
+      "messageCount": 20,
+      "modelsUsed": [
+        "gpt-5.4"
+      ],
+      "tokenTotals": {
+        "input": 47000,
+        "output": 26000,
+        "reasoning": 9000,
+        "cacheRead": 7000,
+        "cacheWrite": 2000,
+        "total": 91000
+      },
+      "confidence": "inferred",
+      "inferenceReason": "Codex project path inferred from session metadata cwd",
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 1.21
+    },
+    {
+      "id": "demo-session-11",
+      "agent": "claude",
+      "nativeSessionId": "claude-demo-003",
+      "projectPath": "/demo/workspaces/roadmap-studio",
+      "startedAt": "2026-04-08T07:45:49.256Z",
+      "endedAt": "2026-04-08T08:52:49.256Z",
+      "messageCount": 31,
+      "modelsUsed": [
+        "claude-opus-4.6"
+      ],
+      "tokenTotals": {
+        "input": 105000,
+        "output": 61000,
+        "reasoning": 24000,
+        "cacheRead": 9000,
+        "cacheWrite": 4000,
+        "total": 203000
+      },
+      "confidence": "exact",
+      "inferenceReason": null,
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 4.18
+    },
+    {
+      "id": "demo-session-12",
+      "agent": "gemini",
+      "nativeSessionId": "gemini-demo-003",
+      "projectPath": "/demo/workspaces/analytics-lab",
+      "startedAt": "2026-04-07T11:45:49.256Z",
+      "endedAt": "2026-04-07T12:14:49.256Z",
+      "messageCount": 13,
+      "modelsUsed": [
+        "gemini-3.1-pro"
+      ],
+      "tokenTotals": {
+        "input": 36000,
+        "output": 22000,
+        "reasoning": 6000,
+        "cacheRead": 4000,
+        "cacheWrite": 1000,
+        "total": 69000
+      },
+      "confidence": "inferred",
+      "inferenceReason": "Gemini project path inferred from workspace metadata",
+      "costStatus": "estimated",
+      "costProvenance": "catalog",
+      "missingCostMessageCount": 0,
+      "missingCostTokenTotal": 0,
+      "costUsd": 0.88
+    }
+  ],
+  "totals": {
+    "sessionsCount": 12,
+    "tokens": {
+      "input": 734000,
+      "output": 405000,
+      "reasoning": 132000,
+      "cacheRead": 101000,
+      "cacheWrite": 27000,
+      "total": 1399000
+    },
+    "costStatus": "estimated",
+    "costProvenance": "catalog",
+    "totalCostUsd": 22.79
+  },
+  "warnings": []
+}
