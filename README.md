@@ -24,29 +24,6 @@ bun install
 bun run dev
 ```
 
-### Demo Data for Screenshots
-
-Use the built-in demo snapshot when you want to record the UI without showing your real projects:
-
-```sh
-bun run dev -- --demo
-```
-
-You can also write the demo snapshot to disk and reopen it later:
-
-```sh
-bun run snapshot -- --demo --out demo/demo-snapshot.json
-bun run dev -- --snapshot demo/demo-snapshot.json
-```
-
-You can force a cost policy when generating a snapshot:
-
-```sh
-bun run snapshot -- --cost-mode auto
-bun run snapshot -- --cost-mode calculate
-bun run snapshot -- --cost-mode display
-```
-
 ## Keybindings
 
 - `1..6` switch tabs
@@ -80,6 +57,7 @@ Agent Ledger prefers native costs when a source provides them, currently includi
 ## Documentation
 
 - [How it works](docs/how-it-works.md)
+- [Demo data](docs/demo.md)
 - [Pricing](docs/pricing.md)
 
 For new or mismatched models, you can always override pricing locally via `~/.config/agent-ledger/pricing.json`.
